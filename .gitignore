@@ -32,10 +32,20 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.secret.local
+/functions/.env
+/functions/.secret.local
 
 # typescript
 *.tsbuildinfo
+/functions/lib/
 
 # generated native folders
 /ios
 /android
+
+pc-api-key.json
+
+# Firebase CLI cache
+.firebase/

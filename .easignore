@@ -1,0 +1,23 @@
+# Dependency folders
+node_modules/
+
+# Native build folders
+ios/
+android/
+
+# Secrets & environment configurations (CRITICAL)
+.env*
+.secret*
+*.json.local
+pc-api-key.json
+functions/
+
+# Temporary / OS files
+.expo/
+dist/
+web-build/
+.DS_Store
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo

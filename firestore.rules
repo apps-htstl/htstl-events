@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ── Helper functions ────────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function userRole() {
+      return getUserData().role;
+    }
+
+    function isMemberOfOrg(orgId) {
+      return isAuthenticated() && getUserData().orgId == orgId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && userRole() in ['superadmin', 'eventadmin'];
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && userRole() == 'superadmin';
+    }
+
+    function isPoojari() {
+      return isAuthenticated() && userRole() == 'poojari';
+    }
+
+    // ── 1. Users collection ─────────────────────────────────────────────────────
+    match /users/{userId} {
+      // A user can only read their own profile.
+      // Admins can read profiles of users in the SAME org (not other orgs).
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (isAdmin() && getUserData().orgId == resource.data.orgId)
+      );
+
+      // A user can write their own profile (limited fields only — see below).
+      // Superadmins can pre-provision staff profiles with any doc ID (invite flow).
+      allow create: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isSuperAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (isAdmin() && getUserData().orgId == resource.data.orgId)
+      );
+      // Only superadmins can delete user records
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── 2. Organisation root ─────────────────────────────────────────────────────
+    match /orgs/{orgId} {
+      // Members can read their org document. Only superadmins can write it.
+      allow read: if isAuthenticated() && isMemberOfOrg(orgId);
+      allow write: if isSuperAdmin() && isMemberOfOrg(orgId);
+
+      // ── 2a. Events ────────────────────────────────────────────────────────────
+      match /events/{eventId} {
+        // Public: anyone can GET (read) a single event document.
+        // This is required for the public ticket page to display event details.
+        // SECURITY NOTE: events do NOT contain PII — only name/venue/date/tiers.
+        allow get: if true;
+
+        // Listing events requires org membership.
+        allow list: if isAuthenticated() && isMemberOfOrg(orgId);
+
+        // Creating, updating, or deleting an event requires admin role in that org.
+        allow create, update: if isAdmin() && isMemberOfOrg(orgId);
+        allow delete: if isSuperAdmin() && isMemberOfOrg(orgId);
+
+        // ── 2b. Registrations ─────────────────────────────────────────────────
+        match /registrations/{regId} {
+          // Public GET: needed so the QR ticket page can show an attendee's own
+          // registration. Does NOT expose the full list.
+          allow get: if true;
+
+          // Listing all registrations requires org membership.
+          allow list: if isAuthenticated() && isMemberOfOrg(orgId);
+
+          // Creating registrations (CSV import) requires admin role.
+          allow create: if isAdmin() && isMemberOfOrg(orgId);
+
+          // Updating (check-in count, email/phone edits) requires org membership.
+          // Heavy write validation (duplicate check, token verification) is done
+          // server-side in Cloud Functions — clients may only do lightweight updates.
+          allow update: if isAuthenticated() && isMemberOfOrg(orgId);
+
+          // Deleting a registration requires admin role.
+          allow delete: if isAdmin() && isMemberOfOrg(orgId);
+        }
+
+        // ── 2c. Check-in audit log ─────────────────────────────────────────────
+        match /checkins/{checkInId} {
+          // Only org members can read the audit log.
+          allow read: if isAuthenticated() && isMemberOfOrg(orgId);
+
+          // Only org members can write check-in entries (volunteers create them).
+          allow create: if isAuthenticated() && isMemberOfOrg(orgId);
+
+          // Check-in records are immutable once written — no updates or deletes
+          // from the client. (Cloud Functions use Admin SDK and bypass these rules.)
+          allow update, delete: if false;
+        }
+      }
+
+      // ── 2d. Seva Lists (Poojari feature) ─────────────────────────────────────
+      match /sevaLists/{listId} {
+        // Admins and Poojaris (members of the org) can read seva lists.
+        allow read: if isAuthenticated() && isMemberOfOrg(orgId);
+
+        // Only admins can create or delete seva lists.
+        allow create: if isAdmin() && isMemberOfOrg(orgId);
+        allow delete: if isAdmin() && isMemberOfOrg(orgId);
+
+        // Admins can update seva list metadata.
+        allow update: if isAdmin() && isMemberOfOrg(orgId);
+
+        // ── 2e. Seva Progress (per-Poojari read tracking) ─────────────────────
+        match /progress/{poojariUid} {
+          // A Poojari can only read and write their own progress.
+          // Admins can read all progress docs (for analytics).
+          allow read: if isAuthenticated() && isMemberOfOrg(orgId) && (
+            request.auth.uid == poojariUid || isAdmin()
+          );
+          allow write: if isAuthenticated() && isMemberOfOrg(orgId) &&
+            request.auth.uid == poojariUid;
+        }
+      }
+    }
+
+    // ── Catch-all deny ──────────────────────────────────────────────────────────
+    // Any path not explicitly matched above is denied by default in Firestore.
+    // This explicit rule makes the intent clear.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,40 @@
+diff --git a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
+index 2a67797..83734b0 100644
+--- a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
++++ b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
+@@ -367,9 +367,14 @@ id convertJSIValueToObjCObject(
+       [inv invokeWithTarget:strongModule];
+     } @catch (NSException *exception) {
+       if (isSync) {
+-        // We can only convert NSException to JSError in sync method calls.
+-        // See https://github.com/reactwg/react-native-new-architecture/discussions/276#discussioncomment-12567155
+-        throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);
++        // PATCH: Replaced unsafe cross-thread JSI throw (causes EXC_BAD_ACCESS on iOS 26+)
++        // with RCTLogError. See: https://github.com/facebook/react-native/issues/50209
++        // and https://github.com/facebook/react-native/pull/56265
++        RCTLogError(
++            @"Exception in sync TurboModule %s.%s: %@",
++            moduleName,
++            methodNameStr.c_str(),
++            exception);
+       } else {
+         @throw exception;
+       }
+@@ -435,7 +440,16 @@ TraceSection s(
+     @try {
+       [inv invokeWithTarget:strongModule];
+     } @catch (NSException *exception) {
+-      throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);
++      // PATCH: Replaced unsafe cross-thread JSI throw (causes EXC_BAD_ACCESS on iOS 26+)
++      // with RCTLogError. The original code attempted to access the Hermes runtime from
++      // a background TurboModule queue, corrupting the heap. This matches the fix in
++      // React Native PR #56265 (landed in RN 0.85.0-rc.7).
++      // See: https://github.com/facebook/react-native/issues/50209
++      RCTLogError(
++          @"Exception in void TurboModule %s.%s: %@",
++          moduleName,
++          methodNameStr.c_str(),
++          exception);
+     } @finally {
+       [retainedObjectsForInvocation removeAllObjects];
+     }

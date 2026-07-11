@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "htsl-events"
+  },
+  "targets": {
+    "htsl-events": {
+      "hosting": {
+        "ticket": [
+          "htsl-events"
+        ],
+        "app": [
+          "htsl-events-app"
+        ]
+      }
+    }
+  }
+}

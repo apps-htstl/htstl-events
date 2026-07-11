@@ -1,56 +1,100 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+// app/_layout.tsx
+// Root layout: wraps all screens in AuthProvider, handles splash screen,
+// and redirects to the correct section based on auth state and user role.
+
 import { useEffect } from 'react';
+import { useFonts } from 'expo-font';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Prevent splash screen from hiding until fonts + auth state are ready
 SplashScreen.preventAutoHideAsync();
 
+// Inner component — has access to AuthContext
+function RootLayoutNav() {
+  const { appUser, isLoading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inAdminGroup = segments[0] === '(admin)';
+    const inVolunteerGroup = segments[0] === '(volunteer)';
+    const inPoojariGroup = segments[0] === '(poojari)';
+
+    if (!appUser) {
+      // Not signed in → send to login
+      if (!inAuthGroup) {
+        router.replace('/(auth)/login');
+      }
+      return;
+    }
+
+    // Signed in — route by role
+    if (appUser.role === 'superadmin' || appUser.role === 'eventadmin') {
+      // Superadmin/eventadmin → admin area by default.
+      // BUT: allow superadmin to navigate into the poojari portal if they choose to.
+      if (!inAdminGroup && !inPoojariGroup) {
+        router.replace('/(admin)/events');
+      }
+    } else if (appUser.role === 'poojari') {
+      if (!inPoojariGroup) {
+        router.replace('/(poojari)/seva-registry' as any);
+      }
+    } else {
+      // volunteer
+      if (!inVolunteerGroup) {
+        router.replace('/(volunteer)/scan');
+      }
+    }
+  }, [appUser, isLoading, segments]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
+
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(admin)" />
+        <Stack.Screen name="(volunteer)" />
+        <Stack.Screen name="(poojari)" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style="auto" />
+    </>
+  );
+}
+
+// Root layout wraps everything in the auth provider
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    // Icon fonts — keys MUST exactly match the fontFamily the icon components use on web.
+    // Ionicons.js: createIconSet(glyphMap, 'ionicons', font)
+    // MaterialCommunityIcons.js: createIconSet(glyphMap, 'material-community', font)
+    ionicons: require('../node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
+    'material-community': require('../node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf'),
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  if (!loaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
   );
 }

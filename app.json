@@ -1,27 +1,38 @@
 {
   "expo": {
-    "name": "RegiCheck_App",
-    "slug": "RegiCheck_App",
+    "name": "HTSTL Events",
+    "slug": "htsl-events",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "regicheckapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "htsl-events",
+    "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.htsl.events",
+      "buildNumber": "15",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.htsl.events",
+      "versionCode": 5,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single-page",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -31,12 +42,25 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow HTSL Events to access your camera to scan attendee QR codes."
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "48d89faf-3f96-43e5-b8e8-39ff52d7c523"
+      }
+    },
+    "owner": "htstl"
   }
 }
