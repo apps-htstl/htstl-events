@@ -85,18 +85,16 @@ export const provisionUser = onCall(async (request) => {
       throw new HttpsError('internal', err.message || 'Failed to look up existing user.');
     }
 
-    // 5. No existing auth user — create one with a temporary random password
-    //    The user can reset it or be given a magic-link on first login.
-    //    We use a strong random password they won't know — they should use the
-    //    magic link flow to sign in, which will work normally after creation.
-    const tempPassword = generateStrongPassword();
+    // 5. No existing auth user — create one with the default password.
+    //    The user can sign in with this password right away.
+    const defaultPassword = 'htstleventsadmin0714';
 
     let newUser;
     try {
       newUser = await auth.createUser({
         email: normalizedEmail,
         displayName: displayName.trim(),
-        password: tempPassword,
+        password: defaultPassword,
         emailVerified: false,
       });
     } catch (createErr: any) {
@@ -129,12 +127,4 @@ export const provisionUser = onCall(async (request) => {
   }
 });
 
-/** Generates a cryptographically random 24-character password. */
-function generateStrongPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
-  let pw = '';
-  for (let i = 0; i < 24; i++) {
-    pw += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return pw;
-}
+

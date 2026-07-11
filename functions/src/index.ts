@@ -5,4 +5,5 @@ admin.initializeApp();
 export { sendTickets } from './notify';
 export { validateAndCheckIn } from './checkin';
 export { provisionUser } from './provisionUser';
+export { setUserDefaultPassword } from './setUserDefaultPassword';
 

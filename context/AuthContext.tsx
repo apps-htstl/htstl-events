@@ -2,7 +2,8 @@
 // Provides Firebase Auth state and the current user's Firestore profile (with role)
 // to the entire app via React Context.
 
-import { auth, db } from '@/lib/firebase';
+import { app, auth, db } from '@/lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { AppUser } from '@/lib/types';
 import {
   ActionCodeSettings,
@@ -12,6 +13,7 @@ import {
   sendSignInLinkToEmail,
   signInWithEmailLink,
   signOut,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import {
   collection,
@@ -55,6 +57,7 @@ interface AuthContextValue {
   isLoading: boolean;
   sendMagicLink: (email: string) => Promise<void>;
   completeSignIn: (email: string, link: string) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -151,6 +154,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [fetchAppUser],
   );
 
+  const signInWithPassword = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        if (result.user.email) {
+          await fetchAppUser(result.user.uid, result.user.email);
+        }
+      } catch (err: any) {
+        // If password is the default password and the sign-in failed,
+        // attempt to initialize/reset the password using Cloud Function.
+        if (
+          (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') &&
+          password === 'htstleventsadmin0714'
+        ) {
+          try {
+            const functions = getFunctions(app, 'us-central1');
+            const setDefaultPass = httpsCallable(functions, 'setUserDefaultPassword');
+            await setDefaultPass({ email, password });
+            
+            // Retry sign in after password has been set
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            if (result.user.email) {
+              await fetchAppUser(result.user.uid, result.user.email);
+            }
+            return;
+          } catch (innerErr) {
+            // Throw original error if the recovery attempt failed
+            throw err;
+          }
+        }
+        throw err;
+      }
+    },
+    [fetchAppUser]
+  );
+
   const logout = useCallback(async () => {
     await signOut(auth);
     setAppUser(null);
@@ -165,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         sendMagicLink,
         completeSignIn,
+        signInWithPassword,
         logout,
       }}
     >
