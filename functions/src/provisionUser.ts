@@ -6,6 +6,8 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
+const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD;
+
 export const provisionUser = onCall(async (request) => {
   // 1. Must be authenticated
   if (!request.auth) {
@@ -42,9 +44,15 @@ export const provisionUser = onCall(async (request) => {
   let uid: string;
   try {
     const existing = await auth.getUserByEmail(normalizedEmail);
-    // Auth user exists — just update their Firestore profile role
+    // Auth user exists — update password to default and update their Firestore profile role
     uid = existing.uid;
 
+    if (!DEFAULT_PASSWORD) {
+      throw new HttpsError('internal', 'Server configuration error: DEFAULT_USER_PASSWORD not set.');
+    }
+
+    // Always reset password to default when an admin provisions/updates a user
+    await auth.updateUser(uid, { password: DEFAULT_PASSWORD });
     const userRef = db.collection('users').doc(uid);
     const firestoreSnap = await userRef.get();
 
@@ -87,7 +95,10 @@ export const provisionUser = onCall(async (request) => {
 
     // 5. No existing auth user — create one with the default password.
     //    The user can sign in with this password right away.
-    const defaultPassword = 'htstleventsadmin0714';
+    if (!DEFAULT_PASSWORD) {
+      throw new HttpsError('internal', 'Server configuration error: DEFAULT_USER_PASSWORD not set.');
+    }
+    const defaultPassword = DEFAULT_PASSWORD;
 
     let newUser;
     try {

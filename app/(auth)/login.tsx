@@ -58,12 +58,15 @@ export default function LoginScreen() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [secureTextEntry, setSecureTextEntry] = useState(true);
 
-  // If user is already signed in, redirect them
+  // If user is already signed in, redirect them based on role
   useEffect(() => {
     if (appUser) {
       if (appUser.role === 'superadmin' || appUser.role === 'eventadmin') {
         router.replace('/(admin)/events');
+      } else if (appUser.role === 'poojari') {
+        router.replace('/(poojari)/seva-registry' as any);
       } else {
+        // volunteer and all other roles
         router.replace('/(volunteer)/scan');
       }
     }
@@ -157,9 +160,6 @@ export default function LoginScreen() {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
-          <Text style={styles.disclaimer}>
-            Default password for users is pre-filled. Enter your email and click Sign In.
-          </Text>
         </View>
       </View>
     </KeyboardAvoidingView>
