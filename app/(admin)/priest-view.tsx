@@ -199,6 +199,7 @@ export default function PriestViewScreen() {
   useEffect(() => {
     if (!appUser?.orgId) return;
     const unsubscribe = subscribeEvents(appUser.orgId, (fetchedEvents) => {
+      console.log("Priest view: events updated", fetchedEvents);
       setEvents(fetchedEvents);
     });
     return () => unsubscribe();
@@ -267,14 +268,32 @@ export default function PriestViewScreen() {
     [pending],
   );
 
-  const dateOptions = useMemo<Option[]>(() => {
-    const normalizeDate = (value: string) => {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime())
-        ? value
-        : date.toISOString().split("T")[0];
-    };
+  const normalizeDate = (value: string) => {
+    const trimmed = String(value ?? "").trim();
+    if (!trimmed) return trimmed;
 
+    const cleaned = trimmed.replace(/\u00A0/g, " ").trim();
+
+    const isoDateOnly = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoDateOnly)
+      return `${isoDateOnly[1]}-${isoDateOnly[2]}-${isoDateOnly[3]}`;
+
+    const slashMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      const [, month, day, year] = slashMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    const date = new Date(cleaned);
+    if (Number.isNaN(date.getTime())) return cleaned;
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const dateOptions = useMemo<Option[]>(() => {
     const dates = [
       ...new Set(
         events.map((event) => normalizeDate(event.date.toISOString())),
@@ -283,7 +302,7 @@ export default function PriestViewScreen() {
 
     return [
       { value: ALL, label: "All Dates" },
-      ...dates.map((d) => ({ value: d, label: formatDate(d) })),
+      ...dates.map((d) => ({ value: d, label: d })),
     ];
   }, [events]);
 
@@ -297,13 +316,6 @@ export default function PriestViewScreen() {
       ...eventNames.map((s) => ({ value: s, label: s })),
     ];
   }, [events, registered]);
-
-  const normalizeDate = (value: string) => {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime())
-      ? value
-      : date.toISOString().split("T")[0];
-  };
 
   const timeOptions = useMemo<Option[]>(() => {
     const inScope = registered.filter(
@@ -574,15 +586,4 @@ function Row({
       </View>
     </TouchableOpacity>
   );
-}
-
-function formatDate(value: string) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
