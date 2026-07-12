@@ -347,12 +347,8 @@ export default function PriestViewScreen() {
     [registered, matchesFilters],
   );
 
-  // Sponsors have no event/date/time, so they only pass when no specific
-  // filter is selected.
-  const visibleSponsors = useMemo(
-    () => sponsors.filter(matchesFilters),
-    [sponsors, matchesFilters],
-  );
+  // Sponsors have no event/date/time, so they are always shown.
+  const visibleSponsors = useMemo(() => sponsors, [sponsors]);
 
   // Shown = not-completed records matching the current filters (incl. the
   // sponsors listed under every seva). Awaiting = all not-completed records
@@ -453,7 +449,7 @@ export default function PriestViewScreen() {
           {sevaFilter === ALL ? "All Sevas" : sevaFilter}
         </Text>
         <Text style={gsDark.sectionNote}>
-          Sponsors without an event are listed when no filters are applied
+          Sponsors without an event are listed regardless of filters
         </Text>
       </View>
 
