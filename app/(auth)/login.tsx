@@ -181,7 +181,6 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#6B7280',
-    fontFamily: 'SpaceMono',
   },
   inner: {
     flex: 1,

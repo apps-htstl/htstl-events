@@ -1,6 +1,7 @@
 // app/(admin)/header.tsx
 // Reusable admin header component based on the Devotee Registration design.
 
+import { fonts } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconText: {
-    fontFamily: "Cormorant Garamond",
+    fontFamily: fonts.base,
     fontSize: 22,
     color: "#d4a83f",
   },
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontFamily: "Cormorant Garamond",
+    fontFamily: fonts.base,
     fontSize: 24,
     fontWeight: "700",
     color: "#fbf5e9",
