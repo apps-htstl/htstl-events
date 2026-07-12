@@ -328,6 +328,10 @@ export const gsDark = StyleSheet.create({
   },
   headerTextBlock: { flexShrink: 1 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 24 },
+  headerRightNarrow: {
+    width: "100%",
+    justifyContent: "center",
+  },
   omCircle: {
     width: 52,
     height: 52,

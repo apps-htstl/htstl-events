@@ -45,7 +45,11 @@ export default function AdminHeader({
           {meta ? <Text style={gsDark.headerMeta}>{meta}</Text> : null}
         </View>
       </View>
-      {right ? <View style={gsDark.headerRight}>{right}</View> : null}
+      {right ? (
+        <View style={[gsDark.headerRight, narrow && gsDark.headerRightNarrow]}>
+          {right}
+        </View>
+      ) : null}
     </View>
   );
 }
