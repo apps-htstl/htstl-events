@@ -31,8 +31,11 @@ export const colors = {
   muted: "#8a6a4e",
 
   // Callout / tip panels
-  tipBg: "#fdf0e2",
+  tipBg: "#fff8f2",
   tipBorder: "#c9a25c",
+
+  // Bottom tab / nav bar
+  navBg: "#fdf0e2",
 
   // Status
   success: "#2f7d38",

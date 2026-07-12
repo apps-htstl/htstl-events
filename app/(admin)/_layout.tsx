@@ -2,6 +2,7 @@
 // Admin tab navigator — shows Events, Seva Registry, and Settings tabs.
 
 import { useAuth } from "@/context/AuthContext";
+import { alpha, colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
@@ -13,11 +14,11 @@ export default function AdminLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#6D28D9",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: colors.dark.bg,
+        tabBarInactiveTintColor: alpha(colors.dark.bg, 0.55),
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#F3F4F6",
+          backgroundColor: colors.navBg,
+          borderTopColor: colors.tipBorder,
           borderTopWidth: 1,
           paddingBottom: Platform.OS === "ios" ? 20 : 8,
           height: Platform.OS === "ios" ? 80 : 60,
@@ -51,7 +52,6 @@ export default function AdminLayout() {
         name="seva-registry"
         options={{
           title: "Seva Registry",
-          tabBarActiveTintColor: "#F97316",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
@@ -61,7 +61,6 @@ export default function AdminLayout() {
         name="seva"
         options={{
           title: "Seva View",
-          tabBarActiveTintColor: "#F97316",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="flame-outline" size={size} color={color} />
           ),
