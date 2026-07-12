@@ -1,38 +1,47 @@
 // app/(admin)/_layout.tsx
 // Admin tab navigator — shows Events, Seva Registry, and Settings tabs.
 
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from "@/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
+import { Platform } from "react-native";
 
 export default function AdminLayout() {
   const { appUser } = useAuth();
-  const isSuperAdmin = appUser?.role === 'superadmin';
+  const isSuperAdmin = appUser?.role === "superadmin";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#6D28D9',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: "#6D28D9",
+        tabBarInactiveTintColor: "#9CA3AF",
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#F3F4F6',
+          backgroundColor: "#FFFFFF",
+          borderTopColor: "#F3F4F6",
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-          height: Platform.OS === 'ios' ? 80 : 60,
+          paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          height: Platform.OS === "ios" ? 80 : 60,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: "600",
         },
         headerShown: false,
       }}
     >
       <Tabs.Screen
+        name="home"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="events"
         options={{
-          title: 'Events',
+          title: "Events",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size} color={color} />
           ),
@@ -41,8 +50,8 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="seva-registry"
         options={{
-          title: 'Seva Registry',
-          tabBarActiveTintColor: '#F97316',
+          title: "Seva Registry",
+          tabBarActiveTintColor: "#F97316",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
@@ -51,8 +60,8 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="seva"
         options={{
-          title: 'Seva View',
-          tabBarActiveTintColor: '#F97316',
+          title: "Seva View",
+          tabBarActiveTintColor: "#F97316",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="flame-outline" size={size} color={color} />
           ),
@@ -60,7 +69,7 @@ export default function AdminLayout() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('seva', { screen: 'index' });
+            navigation.navigate("seva", { screen: "index" });
           },
         })}
       />
@@ -68,17 +77,22 @@ export default function AdminLayout() {
         <Tabs.Screen
           name="users"
           options={{
-            title: 'Users',
+            title: "Users",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="people-outline" size={size} color={color} />
             ),
           }}
         />
       )}
+      {/* Priest Live Sankalpam View — full-screen page, not a tab */}
+      <Tabs.Screen
+        name="priest-view"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
+      />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: "Settings",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           ),
