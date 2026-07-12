@@ -9,6 +9,9 @@
 import AdminHeader from "@/components/AdminHeader";
 import { gsDark } from "@/constants/styles";
 import { colors } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
+import { subscribeEvents } from "@/lib/firestore";
+import { HTSLEvent } from "@/lib/types";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -157,8 +160,10 @@ function Dropdown({
 // ─── Screen ──────────────────────────────────────────────────────────────────
 export default function PriestViewScreen() {
   const router = useRouter();
+  const { appUser } = useAuth();
   const { width } = useWindowDimensions();
   const narrow = width < NARROW_BREAKPOINT;
+  const [events, setEvents] = useState<HTSLEvent[]>([]);
   const [records, setRecords] = useState<SankalpamRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -190,6 +195,14 @@ export default function PriestViewScreen() {
     applyServerRecords(await apiRecords());
     setError(null);
   }, [applyServerRecords]);
+
+  useEffect(() => {
+    if (!appUser?.orgId) return;
+    const unsubscribe = subscribeEvents(appUser.orgId, (fetchedEvents) => {
+      setEvents(fetchedEvents);
+    });
+    return () => unsubscribe();
+  }, [appUser?.orgId]);
 
   // Initial load + light polling so walk-in edits appear without a reload.
   useEffect(() => {
@@ -255,27 +268,47 @@ export default function PriestViewScreen() {
   );
 
   const dateOptions = useMemo<Option[]>(() => {
+    const normalizeDate = (value: string) => {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime())
+        ? value
+        : date.toISOString().split("T")[0];
+    };
+
     const dates = [
-      ...new Set(registered.map((r) => r.eventDate).filter(Boolean)),
+      ...new Set(
+        events.map((event) => normalizeDate(event.date.toISOString())),
+      ),
     ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
     return [
       { value: ALL, label: "All Dates" },
       ...dates.map((d) => ({ value: d, label: formatDate(d) })),
     ];
-  }, [registered]);
+  }, [events]);
 
   const sevaOptions = useMemo<Option[]>(() => {
-    const sevas = [...new Set(registered.map((r) => r.eventName))].sort();
+    const eventNames = [...events]
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .map((event) => event.name);
+
     return [
       { value: ALL, label: "All Sevas" },
-      ...sevas.map((s) => ({ value: s, label: s })),
+      ...eventNames.map((s) => ({ value: s, label: s })),
     ];
-  }, [registered]);
+  }, [events, registered]);
+
+  const normalizeDate = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toISOString().split("T")[0];
+  };
 
   const timeOptions = useMemo<Option[]>(() => {
     const inScope = registered.filter(
       (r) =>
-        (dateFilter === ALL || r.eventDate === dateFilter) &&
+        (dateFilter === ALL || normalizeDate(r.eventDate) === dateFilter) &&
         (sevaFilter === ALL || r.eventName === sevaFilter),
     );
     const times = [
@@ -291,7 +324,7 @@ export default function PriestViewScreen() {
   // must match the record exactly (blank fields don't match).
   const matchesFilters = useCallback(
     (r: SankalpamRecord) =>
-      (dateFilter === ALL || r.eventDate === dateFilter) &&
+      (dateFilter === ALL || normalizeDate(r.eventDate) === dateFilter) &&
       (sevaFilter === ALL || r.eventName === sevaFilter) &&
       (timeFilter === ALL || r.eventTime === timeFilter),
     [dateFilter, sevaFilter, timeFilter],
@@ -377,14 +410,14 @@ export default function PriestViewScreen() {
             setTimeFilter(ALL);
           }}
         />
-        <Dropdown
+        {/* <Dropdown
           label="Time"
           value={timeFilter}
           options={timeOptions}
           minWidth={160}
           fullWidth={narrow}
           onSelect={setTimeFilter}
-        />
+        /> */}
         <TouchableOpacity
           style={[
             gsDark.btnGold,
