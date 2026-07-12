@@ -3,28 +3,35 @@
 
 import { useRouter } from "expo-router";
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 import { gs } from "@/constants/styles";
-import { spacing } from "@/constants/theme";
+
+// Below this width the card grid collapses to a single column.
+const NARROW_BREAKPOINT = 768;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const narrow = width < NARROW_BREAKPOINT;
+  const gridItem = [gs.gridItem, narrow && gs.gridItemFull];
 
   return (
     <ScrollView style={gs.screen} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={gs.headerBand}>
+      <View style={[gs.headerBand, narrow && gs.headerBandNarrow]}>
         <View style={gs.omCircle}>
           <Text style={gs.omGlyph}>ॐ</Text>
         </View>
-        <Text style={gs.headerTitle}>Hindu Temple of St. Louis</Text>
-        <Text style={gs.headerSubtitle}>
+        <Text style={[gs.headerTitle, narrow && gs.headerTitleNarrow]}>
+          Hindu Temple of St. Louis
+        </Text>
+        <Text style={[gs.headerSubtitle, narrow && gs.headerSubtitleNarrow]}>
           Navakundathmaka Shatha Chandi Sahitha Rudra Yagam
         </Text>
         <Text style={gs.headerMeta}>
@@ -37,10 +44,10 @@ export default function HomeScreen() {
         <Text style={gs.sectionLabel}>Choose a screen</Text>
 
         {/* Grid of Navigation Cards */}
-        <View style={styles.grid}>
+        <View style={gs.grid}>
           {/* Devotee Online Registration */}
           <TouchableOpacity
-            style={[gs.card, styles.gridItem]}
+            style={[gs.card, ...gridItem]}
             onPress={() => router.push("/devotee-registration")}
           >
             <Text style={gs.cardTitle}>Devotee Online Registration</Text>
@@ -53,7 +60,7 @@ export default function HomeScreen() {
 
           {/* Registration Desk */}
           <TouchableOpacity
-            style={[gs.card, styles.gridItem]}
+            style={[gs.card, ...gridItem]}
             onPress={() => router.push("/walkin-admin")}
           >
             <Text style={gs.cardTitle}>Registration Desk (Staff)</Text>
@@ -65,7 +72,7 @@ export default function HomeScreen() {
 
           {/* Self-Service Kiosk */}
           <TouchableOpacity
-            style={[gs.card, styles.gridItem]}
+            style={[gs.card, ...gridItem]}
             onPress={() => router.push("/self-service-kiosk")}
           >
             <Text style={gs.cardTitle}>Self-Service Kiosk</Text>
@@ -77,7 +84,7 @@ export default function HomeScreen() {
 
           {/* Priest Live Sankalpam View */}
           <TouchableOpacity
-            style={[gs.cardDark, styles.gridItem]}
+            style={[gs.cardDark, ...gridItem]}
             onPress={() => router.push("/priest-view")}
           >
             <Text style={gs.cardDarkTitle}>Priest Live Sankalpam View</Text>
@@ -89,7 +96,7 @@ export default function HomeScreen() {
 
           {/* Admin Dashboard - spans 2 columns */}
           <TouchableOpacity
-            style={[gs.card, styles.gridItem, styles.gridItemWide]}
+            style={[gs.card, ...gridItem, gs.gridItemFull]}
             onPress={() => router.push("/users")}
           >
             <Text style={gs.cardTitle}>Event Admin Dashboard</Text>
@@ -113,21 +120,3 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
-
-// Only layout specific to this screen lives here — all colors, fonts and
-// component looks come from the shared theme.
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.lg,
-    marginBottom: spacing.xl + 4,
-  },
-  gridItem: {
-    flex: 1,
-    minWidth: "45%",
-  },
-  gridItemWide: {
-    minWidth: "100%",
-  },
-});

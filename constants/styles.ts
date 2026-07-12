@@ -20,6 +20,7 @@ import {
   fontSize,
   maxContentWidth,
   radius,
+  rem,
   spacing,
 } from "./theme";
 
@@ -46,6 +47,21 @@ export const gs = StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  // ─── Card grid (2-up on wide screens, use gridItemFull when narrow) ────────
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.lg,
+    marginBottom: spacing.xl + 4,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: "45%",
+  },
+  gridItemFull: {
+    minWidth: "100%",
+  },
+
   // ─── Header band (dark maroon banner) ──────────────────────────────────────
   headerBand: {
     backgroundColor: colors.dark.bg,
@@ -68,7 +84,7 @@ export const gs = StyleSheet.create({
   },
   omGlyph: {
     fontFamily: fonts.serif,
-    fontSize: 28,
+    fontSize: rem(1.75),
     color: colors.gold,
   },
   headerTitle: {
@@ -92,6 +108,14 @@ export const gs = StyleSheet.create({
     marginTop: spacing.sm,
     textAlign: "center",
   },
+
+  // Narrow-screen (< 768px) header band variants
+  headerBandNarrow: {
+    paddingTop: spacing.xxl + 6,
+    paddingBottom: spacing.xxl + 10,
+  },
+  headerTitleNarrow: { fontSize: fontSize.h1 },
+  headerSubtitleNarrow: { fontSize: fontSize.h3 },
 
   // ─── Headings & labels ─────────────────────────────────────────────────────
   h1: {
@@ -296,7 +320,13 @@ export const gsDark = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: colors.goldDeep,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 18 },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+    flexShrink: 1,
+  },
+  headerTextBlock: { flexShrink: 1 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 24 },
   omCircle: {
     width: 52,
@@ -307,20 +337,26 @@ export const gsDark = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  omGlyph: { fontFamily: fonts.serif, fontSize: 26, color: colors.gold },
+  omGlyph: { fontFamily: fonts.serif, fontSize: rem(1.625), color: colors.gold },
   title: {
     fontFamily: fonts.serif,
-    fontSize: 30,
+    fontSize: rem(1.875),
     fontWeight: "700",
     color: colors.dark.text,
     letterSpacing: 0.5,
   },
   subtitle: {
     fontFamily: fonts.sans,
-    fontSize: 15,
+    fontSize: rem(0.9375),
     color: colors.gold,
     letterSpacing: 0.5,
     marginTop: 2,
+  },
+  headerMeta: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.small,
+    color: colors.dark.muted,
+    marginTop: spacing.xs,
   },
   liveDot: {
     width: 10,
@@ -401,7 +437,7 @@ export const gsDark = StyleSheet.create({
   menuItemActive: { backgroundColor: alpha(colors.gold, 0.25) },
   menuItemText: {
     fontFamily: fonts.sans,
-    fontSize: 15,
+    fontSize: rem(0.9375),
     color: colors.dark.text,
   },
 
@@ -416,7 +452,7 @@ export const gsDark = StyleSheet.create({
   },
   btnGoldText: {
     fontFamily: fonts.sans,
-    fontSize: 15,
+    fontSize: rem(0.9375),
     fontWeight: "700",
     color: colors.dark.bg,
   },
@@ -453,7 +489,7 @@ export const gsDark = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: fonts.serif,
-    fontSize: 26,
+    fontSize: rem(1.625),
     fontWeight: "600",
     color: colors.dark.text,
   },
@@ -514,7 +550,7 @@ export const gsDark = StyleSheet.create({
   },
   rowTitle: {
     fontFamily: fonts.serif,
-    fontSize: 34,
+    fontSize: rem(2.125),
     fontWeight: "700",
     color: colors.dark.highlight,
   },
@@ -548,5 +584,48 @@ export const gsDark = StyleSheet.create({
     fontSize: fontSize.h2,
     fontFamily: fonts.serif,
     paddingBottom: 60,
+  },
+
+  // States
+  disabled: { opacity: 0.6 },
+
+  // Table cell widths (wide layout)
+  cellLg: { flex: 2 },
+  cellSm: { flex: 1.3 },
+
+  // ── Narrow-screen (< 768px) variants — compose after the base class ──
+  headerNarrow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 14,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+  },
+  titleNarrow: { fontSize: fontSize.h2 },
+  subtitleNarrow: { fontSize: fontSize.label },
+  filterBarNarrow: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
+  },
+  dropdownFull: { minWidth: "100%" },
+  btnFull: { width: "100%" },
+  sectionRowNarrow: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xl,
+  },
+  listNarrow: { paddingHorizontal: spacing.lg },
+  rowStacked: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+  },
+  actionColumnStacked: {
+    width: "100%",
+    alignItems: "stretch",
+    marginTop: spacing.xs,
   },
 });

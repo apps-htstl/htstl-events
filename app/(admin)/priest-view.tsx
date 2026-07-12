@@ -6,7 +6,9 @@
 // sheet; Sync pulls new rows from the source sheets without touching
 // existing ones.
 
+import AdminHeader from "@/components/AdminHeader";
 import { gsDark } from "@/constants/styles";
+import { colors } from "@/constants/theme";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -16,8 +18,12 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
+
+// Below this width the priest view switches to the stacked mobile layout.
+const NARROW_BREAKPOINT = 768;
 
 // Backend: a Google Apps Script Web App that reads/writes the destination
 // Google Sheet (see google-apps-script/README.md).
@@ -93,18 +99,26 @@ function Dropdown({
   value,
   options,
   minWidth,
+  fullWidth = false,
   onSelect,
 }: {
   label: string;
   value: string;
   options: Option[];
   minWidth: number;
+  fullWidth?: boolean;
   onSelect: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
   return (
-    <View style={[gsDark.dropdownWrap, { minWidth, zIndex: open ? 100 : 1 }]}>
+    <View
+      style={[
+        gsDark.dropdownWrap,
+        { minWidth, zIndex: open ? 100 : 1 },
+        fullWidth && gsDark.dropdownFull,
+      ]}
+    >
       <Text style={gsDark.filterLabel}>{label}</Text>
       <TouchableOpacity
         style={gsDark.select}
@@ -143,6 +157,8 @@ function Dropdown({
 // ─── Screen ──────────────────────────────────────────────────────────────────
 export default function PriestViewScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const narrow = width < NARROW_BREAKPOINT;
   const [records, setRecords] = useState<SankalpamRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -324,35 +340,27 @@ export default function PriestViewScreen() {
   return (
     <View style={gsDark.screen}>
       {/* Header */}
-      <View style={gsDark.header}>
-        <View style={gsDark.headerLeft}>
-          <View style={gsDark.omCircle}>
-            <Text style={gsDark.omGlyph}>ॐ</Text>
-          </View>
-          <View>
-            <Text style={gsDark.title}>Hindu Temple of St. Louis</Text>
-            <Text style={gsDark.subtitle}>
-              Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Priest
-              Sankalpam View
-            </Text>
-          </View>
-        </View>
-        <View style={gsDark.headerRight}>
-          <Animated.View style={[gsDark.liveDot, { opacity: pulse }]} />
-          <Text style={gsDark.liveText}> {shownCount} in view</Text> <br></br>
-          <TouchableOpacity onPress={() => router.replace("/home" as any)}>
-            <Text style={gsDark.link}>← Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AdminHeader
+        subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Priest Sankalpam View"
+        right={
+          <>
+            <Animated.View style={[gsDark.liveDot, { opacity: pulse }]} />
+            <Text style={gsDark.liveText}>{shownCount} in view</Text>
+            <TouchableOpacity onPress={() => router.replace("/home" as any)}>
+              <Text style={gsDark.link}>← Back</Text>
+            </TouchableOpacity>
+          </>
+        }
+      />
 
       {/* Filters */}
-      <View style={gsDark.filterBar}>
+      <View style={[gsDark.filterBar, narrow && gsDark.filterBarNarrow]}>
         <Dropdown
           label="Date"
           value={dateFilter}
           options={dateOptions}
           minWidth={220}
+          fullWidth={narrow}
           onSelect={(v) => {
             setDateFilter(v);
             setTimeFilter(ALL);
@@ -362,7 +370,8 @@ export default function PriestViewScreen() {
           label="Seva"
           value={sevaFilter}
           options={sevaOptions}
-          minWidth={320}
+          minWidth={narrow ? 220 : 320}
+          fullWidth={narrow}
           onSelect={(v) => {
             setSevaFilter(v);
             setTimeFilter(ALL);
@@ -373,15 +382,20 @@ export default function PriestViewScreen() {
           value={timeFilter}
           options={timeOptions}
           minWidth={160}
+          fullWidth={narrow}
           onSelect={setTimeFilter}
         />
         <TouchableOpacity
-          style={[gsDark.btnGold, syncing && { opacity: 0.6 }]}
+          style={[
+            gsDark.btnGold,
+            narrow && gsDark.btnFull,
+            syncing && gsDark.disabled,
+          ]}
           onPress={syncFromDrive}
           disabled={syncing}
         >
           {syncing ? (
-            <ActivityIndicator size="small" color="#2b0d12" />
+            <ActivityIndicator size="small" color={colors.dark.bg} />
           ) : (
             <Text style={gsDark.btnGoldText}>⟳ Sync from Drive</Text>
           )}
@@ -389,7 +403,7 @@ export default function PriestViewScreen() {
       </View>
 
       {/* Section heading */}
-      <View style={gsDark.sectionRow}>
+      <View style={[gsDark.sectionRow, narrow && gsDark.sectionRowNarrow]}>
         <Text style={gsDark.sectionTitle}>
           {sevaFilter === ALL ? "All Sevas" : sevaFilter}
         </Text>
@@ -407,13 +421,13 @@ export default function PriestViewScreen() {
       {/* List */}
       {loading ? (
         <View style={gsDark.emptyWrap}>
-          <ActivityIndicator size="large" color="#d4a83f" />
+          <ActivityIndicator size="large" color={colors.gold} />
           <Text style={gsDark.emptyText}>
             Downloading registrations from Drive…
           </Text>
         </View>
       ) : (
-        <ScrollView style={gsDark.list}>
+        <ScrollView style={[gsDark.list, narrow && gsDark.listNarrow]}>
           {visible.length === 0 && visibleSponsors.length === 0 ? (
             <Text style={gsDark.emptyText}>
               No pending names for this selection yet — new registrations will
@@ -421,18 +435,27 @@ export default function PriestViewScreen() {
             </Text>
           ) : (
             <>
-              <View style={gsDark.gridHeader}>
-                <Text style={[gsDark.gridHeaderCell, { flex: 2 }]}>Name</Text>
-                <Text style={[gsDark.gridHeaderCell, { flex: 2 }]}>
-                  Spouse Name
-                </Text>
-                <Text style={[gsDark.gridHeaderCell, { flex: 1.3 }]}>
-                  Gothram
-                </Text>
-                <View style={gsDark.actionColumn} />
-              </View>
+              {!narrow && (
+                <View style={gsDark.gridHeader}>
+                  <Text style={[gsDark.gridHeaderCell, gsDark.cellLg]}>
+                    Name
+                  </Text>
+                  <Text style={[gsDark.gridHeaderCell, gsDark.cellLg]}>
+                    Spouse Name
+                  </Text>
+                  <Text style={[gsDark.gridHeaderCell, gsDark.cellSm]}>
+                    Gothram
+                  </Text>
+                  <View style={gsDark.actionColumn} />
+                </View>
+              )}
               {visible.map((r) => (
-                <Row key={r.id} record={r} onComplete={markCompleted} />
+                <Row
+                  key={r.id}
+                  record={r}
+                  stacked={narrow}
+                  onComplete={markCompleted}
+                />
               ))}
               {visibleSponsors.length > 0 && (
                 <>
@@ -444,6 +467,7 @@ export default function PriestViewScreen() {
                       key={r.id}
                       record={r}
                       sponsor
+                      stacked={narrow}
                       onComplete={markCompleted}
                     />
                   ))}
@@ -460,35 +484,44 @@ export default function PriestViewScreen() {
 function Row({
   record,
   sponsor = false,
+  stacked = false,
   onComplete,
 }: {
   record: SankalpamRecord;
   sponsor?: boolean;
+  stacked?: boolean;
   onComplete: (record: SankalpamRecord) => void;
 }) {
   return (
     <TouchableOpacity
-      style={[gsDark.row, sponsor && gsDark.rowHighlight]}
+      style={[
+        gsDark.row,
+        sponsor && gsDark.rowHighlight,
+        stacked && gsDark.rowStacked,
+      ]}
       onPress={() => onComplete(record)}
       activeOpacity={0.7}
     >
-      <View style={{ flex: 2 }}>
+      <View style={stacked ? undefined : gsDark.cellLg}>
         <Text style={gsDark.rowText}>{record.name}</Text>
         {!!record.eventTime && (
           <Text style={gsDark.rowMeta}>{record.eventTime}</Text>
         )}
       </View>
-      <Text style={[gsDark.rowText, { flex: 2 }]}>
-        {record.spouseName || "—"}
+      <Text style={[gsDark.rowText, !stacked && gsDark.cellLg]}>
+        {stacked
+          ? `Spouse: ${record.spouseName || "—"}`
+          : record.spouseName || "—"}
       </Text>
-      <Text style={[gsDark.rowText, { flex: 1.3 }]}>
-        {record.gothram || "—"}
+      <Text style={[gsDark.rowText, !stacked && gsDark.cellSm]}>
+        {stacked ? `Gothram: ${record.gothram || "—"}` : record.gothram || "—"}
       </Text>
-      <View style={gsDark.actionColumn}>
+      <View style={stacked ? gsDark.actionColumnStacked : gsDark.actionColumn}>
         <Pressable
           style={(state) =>
             [
               gsDark.btnOutlineGold,
+              stacked && gsDark.btnFull,
               (state as any).hovered && gsDark.btnOutlineGoldHover,
             ] as any
           }

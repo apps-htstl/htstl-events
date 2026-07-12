@@ -3,6 +3,8 @@
 // from the reference designs in /design. Import these anywhere a raw value
 // is needed; for ready-made styles ("classes") use constants/styles.ts.
 
+import { Platform } from "react-native";
+
 // ─── Colors ──────────────────────────────────────────────────────────────────
 export const colors = {
   // Base
@@ -78,14 +80,27 @@ export const fonts = {
   sans: SYSTEM_FONT,
 } as const;
 
+// Font sizes are authored in rem (1rem = 16px browser default). On web the
+// value is emitted as a real CSS rem unit so text scales with the user's
+// browser font-size setting; native gets the equivalent numeric dp, since
+// React Native only accepts numbers there.
+const REM_BASE = 16;
+export function rem(value: number): number {
+  if (Platform.OS === "web") {
+    // react-native-web passes string units through to CSS.
+    return `${value}rem` as unknown as number;
+  }
+  return Math.round(value * REM_BASE);
+}
+
 export const fontSize = {
-  hero: 36, // page banner title
-  h1: 28,
-  h2: 22, // card titles, section headings
-  h3: 18,
-  body: 14, // application default
-  label: 13, // uppercase section labels
-  small: 12,
+  hero: rem(2.25), // 36px — page banner title
+  h1: rem(1.75), // 28px
+  h2: rem(1.375), // 22px — card titles, section headings
+  h3: rem(1.125), // 18px
+  body: rem(0.875), // 14px — application default
+  label: rem(0.8125), // 13px — uppercase section labels
+  small: rem(0.75), // 12px
 } as const;
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
