@@ -16,6 +16,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -254,7 +255,7 @@ export default function CardReaderScreen() {
           }}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={24} color="#374151" />
+          <Ionicons name="arrow-back" size={24} color={colors.gold} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -274,9 +275,9 @@ export default function CardReaderScreen() {
             disabled={isFetchingSheet}
           >
             {isFetchingSheet ? (
-              <ActivityIndicator size="small" color="#F97316" />
+              <ActivityIndicator size="small" color={colors.gold} />
             ) : (
-              <Ionicons name="refresh-outline" size={20} color="#F97316" />
+              <Ionicons name="refresh-outline" size={20} color={colors.gold} />
             )}
           </TouchableOpacity>
           {seenEntries.length > 0 && (
@@ -407,7 +408,7 @@ export default function CardReaderScreen() {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   // Header
   header: {
@@ -415,15 +416,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 10,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.dark.bg,
     borderBottomWidth: 1,
     borderBottomColor: '#FED7AA',
     gap: 4,
   },
   backBtn: { padding: 8 },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
-  headerSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+  headerTitle: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.dark.text },
+  headerSub: { fontFamily: fonts.sans, fontSize: fontSize.small, color: colors.gold, marginTop: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   iconBtn: { padding: 8 },
   uncheckAllBtn: {
@@ -451,7 +452,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F97316',
+    backgroundColor: colors.gold,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
 
   // Current card
   currentCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     gap: 16,

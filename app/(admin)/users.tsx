@@ -26,10 +26,14 @@ import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/lib/firebase';
+import AdminHeader from '@/components/AdminHeader';
+import { gsDark } from '@/constants/styles';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
+import { useRouter } from 'expo-router';
 
 const ROLE_OPTIONS: { label: string; value: UserRole; color: string; bg: string }[] = [
-  { label: 'Super Admin', value: 'superadmin', color: '#7C3AED', bg: '#F3E8FF' },
-  { label: 'Event Admin', value: 'eventadmin', color: '#2563EB', bg: '#DBEAFE' },
+  { label: 'Super Admin', value: 'superadmin', color: colors.primary, bg: colors.surfaceSoft },
+  { label: 'Event Admin', value: 'eventadmin', color: colors.goldDeep, bg: colors.tipBg },
   { label: 'Priest (Poojari)', value: 'poojari', color: '#EA580C', bg: '#FFEDD5' },
   { label: 'Volunteer', value: 'volunteer', color: '#059669', bg: '#D1FAE5' },
 ];
@@ -41,6 +45,7 @@ const EMPTY_FORM = {
 };
 
 export default function UsersManagementScreen() {
+  const router = useRouter();
   const { appUser } = useAuth();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -280,7 +285,7 @@ They can log in with ${email} right away — no sign-up needed.`
               onPress={() => openEditModal(item)}
               style={styles.editBtn}
             >
-              <Ionicons name="pencil-outline" size={18} color="#4B5563" />
+              <Ionicons name="pencil-outline" size={18} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => handleDeleteUser(item)}
@@ -295,41 +300,46 @@ They can log in with ${email} right away — no sign-up needed.`
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>User Directory</Text>
-          <Text style={styles.headerSub}>Manage administrative staff and priest roles</Text>
+      <AdminHeader
+        subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · User Directory"
+        meta="Manage administrative staff, priests, and volunteers"
+        right={
+          <TouchableOpacity onPress={() => router.replace('/home' as any)}>
+            <Text style={gsDark.link}>← Back</Text>
+          </TouchableOpacity>
+        }
+      />
+
+      {/* Search and primary action */}
+      <View style={styles.toolbar}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={colors.muted} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, email, or role..."
+            placeholderTextColor={colors.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </TouchableOpacity>
+          )}
         </View>
         <TouchableOpacity style={styles.inviteBtn} onPress={() => setModalVisible(true)}>
-          <Ionicons name="person-add" size={18} color="#FFF" />
+          <Ionicons name="person-add" size={18} color={colors.dark.bg} />
           <Text style={styles.inviteBtnText}>Invite Staff</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Search bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name, email, or role..."
-          placeholderTextColor="#9CA3AF"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* List */}
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6D28D9" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : filteredUsers.length === 0 ? (
         <View style={styles.emptyState}>
@@ -341,11 +351,13 @@ They can log in with ${email} right away — no sign-up needed.`
         </View>
       ) : (
         <FlatList
+          style={styles.list}
           data={filteredUsers}
           keyExtractor={(item) => item.uid}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
         />
       )}
 
@@ -359,7 +371,7 @@ They can log in with ${email} right away — no sign-up needed.`
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setEditTarget(null)} style={styles.modalCloseBtn}>
-              <Ionicons name="close" size={24} color="#374151" />
+              <Ionicons name="close" size={24} color={colors.gold} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Edit Staff Member</Text>
             <TouchableOpacity
@@ -393,7 +405,7 @@ They can log in with ${email} right away — no sign-up needed.`
                 value={editForm.displayName}
                 onChangeText={(v) => setEditForm((f) => ({ ...f, displayName: v }))}
                 placeholder="Full name"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
               />
             </View>
 
@@ -434,7 +446,7 @@ They can log in with ${email} right away — no sign-up needed.`
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalCloseBtn}>
-              <Ionicons name="close" size={24} color="#374151" />
+              <Ionicons name="close" size={24} color={colors.gold} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Invite Staff Member</Text>
             <TouchableOpacity
@@ -465,7 +477,7 @@ They can log in with ${email} right away — no sign-up needed.`
                 value={form.displayName}
                 onChangeText={(v) => setForm((f) => ({ ...f, displayName: v }))}
                 placeholder="e.g. Pandit Ji / Hrushi Admin"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
               />
             </View>
 
@@ -477,7 +489,7 @@ They can log in with ${email} right away — no sign-up needed.`
                 value={form.email}
                 onChangeText={(v) => setForm((f) => ({ ...f, email: v }))}
                 placeholder="email@example.com"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -516,12 +528,12 @@ They can log in with ${email} right away — no sign-up needed.`
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -532,53 +544,67 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#1F2937' },
-  headerSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  headerTitle: { fontFamily: fonts.serif, fontSize: fontSize.h2, fontWeight: '800', color: colors.heading },
+  headerSub: { fontFamily: fonts.sans, fontSize: fontSize.small, color: colors.muted, marginTop: 2 },
   inviteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6D28D9',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 10,
-    gap: 6,
+    backgroundColor: colors.gold,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: 12,
+    borderRadius: radius.sm + 2,
+    gap: spacing.sm,
+    marginTop: 0,
   },
-  inviteBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+  inviteBtnText: { fontFamily: fonts.sans, color: colors.dark.bg, fontWeight: '700', fontSize: fontSize.body },
+  toolbar: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.sm,
+  },
   searchContainer: {
+    flex: 1,
+    minWidth: 240,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    margin: 16,
-    marginBottom: 8,
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    borderColor: colors.inputBorder,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 11,
+    gap: spacing.sm,
   },
   searchIcon: { marginRight: 2 },
-  searchInput: { flex: 1, fontSize: 14, color: '#1F2937', padding: 0 },
+  searchInput: { flex: 1, fontFamily: fonts.sans, fontSize: fontSize.body, color: colors.heading, padding: 0 },
+  list: { flex: 1, minHeight: 0 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151', textAlign: 'center' },
-  emptyText: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 18 },
-  listContent: { padding: 16, gap: 12, paddingBottom: 40 },
+  emptyTitle: { fontFamily: fonts.serif, fontSize: fontSize.h2, fontWeight: '700', color: colors.heading, textAlign: 'center' },
+  emptyText: { fontFamily: fonts.sans, fontSize: fontSize.label, color: colors.body, textAlign: 'center', lineHeight: 18 },
+  listContent: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: spacing.xl, gap: spacing.md, paddingBottom: 40 },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   userIconWrap: { justifyContent: 'center', alignItems: 'center' },
   userBody: { flex: 1, gap: 4 },
   userTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  userName: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
-  selfTag: { fontSize: 12, fontWeight: '500', color: '#9CA3AF' },
+  userName: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.primary },
+  selfTag: { fontFamily: fonts.sans, fontSize: fontSize.small, fontWeight: '500', color: colors.muted },
   roleBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -587,36 +613,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roleBadgeText: { fontSize: 11, fontWeight: '700' },
-  userEmail: { fontSize: 13, color: '#6B7280' },
+  userEmail: { fontFamily: fonts.sans, fontSize: fontSize.label, color: colors.body },
   pendingText: { fontSize: 11, color: '#EA580C', fontWeight: '600', fontStyle: 'italic' },
   actionsColumn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   editBtn: {
     padding: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.sm,
   },
   deleteBtn: {
     padding: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
+    backgroundColor: colors.dangerBg,
+    borderRadius: radius.sm,
   },
 
   // Modal
-  modalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
+  modalContainer: { flex: 1, backgroundColor: colors.bg },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.dark.bg,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.gold,
   },
   modalCloseBtn: { padding: 6 },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
+  modalTitle: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.dark.text },
   modalSaveBtn: {
-    backgroundColor: '#6D28D9',
+    backgroundColor: colors.gold,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -624,30 +650,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSaveBtnDisabled: { opacity: 0.6 },
-  modalSaveBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
-  modalContent: { padding: 16, gap: 16, paddingBottom: 40 },
+  modalSaveBtnText: { color: colors.dark.bg, fontWeight: '700', fontSize: fontSize.label },
+  modalContent: { width: '100%', maxWidth: 720, alignSelf: 'center', padding: spacing.xl, gap: spacing.lg, paddingBottom: 40 },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: colors.tipBg,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: '#C7D2FE',
+    borderColor: colors.tipBorder,
   },
-  infoText: { flex: 1, fontSize: 13, color: '#4338CA', lineHeight: 18 },
+  infoText: { flex: 1, fontFamily: fonts.sans, fontSize: fontSize.label, color: colors.body, lineHeight: 18 },
   formGroup: { gap: 6 },
-  formLabel: { fontSize: 13, fontWeight: '700', color: '#374151' },
+  formLabel: { fontFamily: fonts.sans, fontSize: fontSize.label, fontWeight: '700', color: colors.body },
   formInput: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
+    borderColor: colors.inputBorder,
+    borderRadius: radius.sm,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
-    color: '#1F2937',
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body,
+    color: colors.heading,
   },
   roleGrid: { gap: 10, marginTop: 4 },
   roleChip: {
@@ -658,7 +685,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
   },
-  roleChipText: { fontSize: 14, fontWeight: '700' },
+  roleChipText: { fontFamily: fonts.sans, fontSize: fontSize.body, fontWeight: '700' },
 });

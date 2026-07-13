@@ -15,6 +15,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AdminHeader from '@/components/AdminHeader';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -75,18 +77,15 @@ export default function PoojariSevaRegistryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>
-            🕉️ Namaste, {appUser?.displayName?.split(' ')[0] || 'Poojari'}
-          </Text>
-          <Text style={styles.headerTitle}>Seva Registry</Text>
-        </View>
+      <AdminHeader
+        subtitle={`Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Seva View`}
+        meta={`Namaste, ${appUser?.displayName?.split(' ')[0] || 'Poojari'}`}
+        right={
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={22} color="#9CA3AF" />
+          <Ionicons name="log-out-outline" size={22} color={colors.gold} />
         </TouchableOpacity>
-      </View>
+        }
+      />
 
       {/* List */}
       {isLoading ? (
@@ -104,11 +103,13 @@ export default function PoojariSevaRegistryScreen() {
         </View>
       ) : (
         <FlatList
+          style={styles.list}
           data={sevaLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
         />
       )}
     </SafeAreaView>
@@ -118,7 +119,7 @@ export default function PoojariSevaRegistryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
@@ -176,10 +177,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  listContent: {
-    padding: 16,
-    gap: 12,
-  },
+  list: { flex: 1, minHeight: 0 },
+  listContent: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: spacing.xl, gap: spacing.md, paddingBottom: 40 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -14,6 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -235,7 +236,7 @@ export default function EventPickerScreen() {
           }}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={24} color="#374151" />
+          <Ionicons name="arrow-back" size={24} color={colors.gold} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -253,9 +254,9 @@ export default function EventPickerScreen() {
           disabled={isFetchingSheet}
         >
           {isFetchingSheet ? (
-            <ActivityIndicator size="small" color="#F97316" />
+            <ActivityIndicator size="small" color={colors.gold} />
           ) : (
-            <Ionicons name="refresh-outline" size={22} color="#F97316" />
+            <Ionicons name="refresh-outline" size={22} color={colors.gold} />
           )}
         </TouchableOpacity>
       </View>
@@ -306,21 +307,21 @@ export default function EventPickerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.dark.bg,
     borderBottomWidth: 1,
     borderBottomColor: '#FED7AA',
     gap: 8,
   },
   backBtn: { padding: 8 },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#1F2937' },
-  headerSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+  headerTitle: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.dark.text },
+  headerSub: { fontFamily: fonts.sans, fontSize: fontSize.small, color: colors.gold, marginTop: 1 },
   refreshBtn: { padding: 8 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
   loadingText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F97316',
+    backgroundColor: colors.gold,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: colors.bg,
     borderBottomWidth: 1,
     borderBottomColor: '#FED7AA',
   },
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
   eventCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     gap: 14,

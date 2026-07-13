@@ -17,6 +17,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AdminHeader from '@/components/AdminHeader';
+import { gsDark } from '@/constants/styles';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -194,12 +197,21 @@ export default function AdminSevaRegistryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Seva Registry</Text>
-          <Text style={styles.headerSub}>Manage Google Sheet connections for Poojari</Text>
-        </View>
+      <AdminHeader
+        subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Seva Registry"
+        right={<TouchableOpacity onPress={() => router.replace('/home' as any)}><Text style={gsDark.link}>← Back</Text></TouchableOpacity>}
+      />
+      <View style={styles.toolbar}>
+        {isSuperAdmin && (
+          <TouchableOpacity
+            style={styles.superAdminBannerCompact}
+            onPress={() => router.push('/(poojari)/seva-registry' as any)}
+          >
+            <Ionicons name="eye-outline" size={16} color={colors.primary} />
+            <Text style={styles.superAdminBannerText}>Open full Poojari view</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => {
@@ -208,7 +220,7 @@ export default function AdminSevaRegistryScreen() {
             setModalVisible(true);
           }}
         >
-          <Ionicons name="add" size={22} color="#FFF" />
+          <Ionicons name="add" size={22} color={colors.dark.bg} />
           <Text style={styles.addBtnText}>Add Sheet</Text>
         </TouchableOpacity>
       </View>
@@ -253,21 +265,30 @@ export default function AdminSevaRegistryScreen() {
         </View>
       ) : (
         <FlatList
+          style={styles.list}
           data={sevaLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
         />
       )}
 
       {/* Add Modal */}
-      <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
+      <Modal
+        visible={modalVisible}
+        animationType="fade"
+        transparent
+        statusBarTranslucent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
         <SafeAreaView style={styles.modalContainer}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalCloseBtn}>
-              <Ionicons name="close" size={24} color="#374151" />
+              <Ionicons name="close" size={24} color={colors.gold} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Add Seva List</Text>
             <TouchableOpacity
@@ -286,7 +307,7 @@ export default function AdminSevaRegistryScreen() {
           <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
             {/* Instructions */}
             <View style={styles.infoBox}>
-              <Ionicons name="information-circle-outline" size={18} color="#F97316" />
+              <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
               <Text style={styles.infoText}>
                 The Google Sheet must be shared as "Anyone with the link can view" for the Poojari to access it.
               </Text>
@@ -359,9 +380,9 @@ export default function AdminSevaRegistryScreen() {
               disabled={preview.loading}
             >
               {preview.loading ? (
-                <ActivityIndicator size="small" color="#F97316" />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Ionicons name="eye-outline" size={18} color="#F97316" />
+                <Ionicons name="eye-outline" size={18} color={colors.primary} />
               )}
               <Text style={styles.previewBtnText}>
                 {preview.loading ? 'Fetching sheet…' : 'Preview Sheet Data'}
@@ -400,13 +421,16 @@ export default function AdminSevaRegistryScreen() {
             )}
           </ScrollView>
         </SafeAreaView>
+        </View>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  toolbar: { width: '100%', maxWidth: 1100, alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.xs },
+  list: { flex: 1, minHeight: 0 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -422,13 +446,13 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F97316',
+    backgroundColor: colors.gold,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 10,
     gap: 5,
   },
-  addBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  addBtnText: { fontFamily: fonts.sans, color: colors.dark.bg, fontWeight: '700', fontSize: fontSize.body },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#374151', textAlign: 'center' },
@@ -443,21 +467,21 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 8,
   },
-  listContent: { padding: 16, gap: 12 },
+  listContent: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: spacing.xl, gap: spacing.md, paddingBottom: 40 },
   listCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
   listCardIcon: {
     width: 44,
@@ -468,8 +492,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listCardBody: { flex: 1, gap: 2 },
-  listCardName: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
-  listCardDesc: { fontSize: 12, color: '#6B7280', lineHeight: 17 },
+  listCardName: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.heading },
+  listCardDesc: { fontFamily: fonts.sans, fontSize: fontSize.small, color: colors.body, lineHeight: 17 },
   listCardMeta: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   listCardDate: { fontSize: 11, color: '#D1D5DB', marginTop: 1 },
   deleteBtn: {
@@ -481,21 +505,37 @@ const styles = StyleSheet.create({
   },
 
   // Modal
-  modalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+    backgroundColor: 'rgba(28, 10, 13, 0.62)',
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 760,
+    maxHeight: '88%',
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.gold,
+  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.dark.bg,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.gold,
   },
   modalCloseBtn: { padding: 6 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: '#1F2937' },
+  modalTitle: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.dark.text },
   modalSaveBtn: {
-    backgroundColor: '#F97316',
+    backgroundColor: colors.gold,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -503,30 +543,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalSaveBtnDisabled: { opacity: 0.6 },
-  modalSaveBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
-  modalContent: { padding: 16, gap: 16, paddingBottom: 40 },
+  modalSaveBtnText: { color: colors.dark.bg, fontWeight: '700', fontSize: fontSize.body },
+  modalContent: { padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.xxl },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: colors.tipBg,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: colors.tipBorder,
   },
   infoText: { flex: 1, fontSize: 13, color: '#6B7280', lineHeight: 18 },
   formGroup: { gap: 6 },
   formLabel: { fontSize: 13, fontWeight: '700', color: '#374151' },
   formInput: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: colors.inputBorder,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#1F2937',
+    color: colors.heading,
   },
   formInputMulti: { minHeight: 72, textAlignVertical: 'top' },
   formHint: { fontSize: 12, color: '#9CA3AF', lineHeight: 16 },
@@ -582,6 +622,7 @@ const styles = StyleSheet.create({
 
   // Superadmin extras
   superAdminBanner: {
+    display: 'none',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -591,8 +632,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#FED7AA',
   },
+  superAdminBannerCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.tipBg,
+  },
   superAdminBannerText: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 13,
     color: '#EA580C',
     fontWeight: '600',

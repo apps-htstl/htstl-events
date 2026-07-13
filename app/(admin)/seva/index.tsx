@@ -13,6 +13,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AdminHeader from '@/components/AdminHeader';
+import { gsDark } from '@/constants/styles';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -60,13 +63,10 @@ export default function AdminSevaIndexScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>🕉️ Seva View</Text>
-          <Text style={styles.headerSub}>Browse and track seva entries as Poojari</Text>
-        </View>
-      </View>
+      <AdminHeader
+        subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Seva View"
+        right={<TouchableOpacity onPress={() => router.replace('/home' as any)}><Text style={gsDark.link}>← Back</Text></TouchableOpacity>}
+      />
 
       {/* Body */}
       {isLoading ? (
@@ -91,11 +91,13 @@ export default function AdminSevaIndexScreen() {
         </View>
       ) : (
         <FlatList
+          style={styles.list}
           data={sevaLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
         />
       )}
     </SafeAreaView>
@@ -103,7 +105,8 @@ export default function AdminSevaIndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  list: { flex: 1, minHeight: 0 },
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
@@ -157,7 +160,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   goManageBtnText: { fontSize: 14, fontWeight: '700', color: '#F97316' },
-  listContent: { padding: 16, gap: 12 },
+  listContent: { width: '100%', maxWidth: 1100, alignSelf: 'center', padding: spacing.xl, gap: spacing.md, paddingBottom: 40 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

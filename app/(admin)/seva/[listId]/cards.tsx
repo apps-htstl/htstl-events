@@ -15,6 +15,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -227,7 +228,7 @@ export default function AdminSevaCardsScreen() {
           onPress={() => { router.replace(`/(admin)/seva/${listId}` as any); }}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={24} color="#374151" />
+          <Ionicons name="arrow-back" size={24} color={colors.gold} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>{selectedEvent || 'Event'}</Text>
@@ -243,8 +244,8 @@ export default function AdminSevaCardsScreen() {
             disabled={isFetchingSheet}
           >
             {isFetchingSheet
-              ? <ActivityIndicator size="small" color="#F97316" />
-              : <Ionicons name="refresh-outline" size={20} color="#F97316" />
+              ? <ActivityIndicator size="small" color={colors.gold} />
+              : <Ionicons name="refresh-outline" size={20} color={colors.gold} />
             }
           </TouchableOpacity>
           {seenEntries.length > 0 && (
@@ -348,16 +349,16 @@ export default function AdminSevaCardsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 8, paddingVertical: 10,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#FED7AA', gap: 4,
+    backgroundColor: colors.dark.bg, borderBottomWidth: 2, borderBottomColor: colors.gold, gap: 4,
   },
   backBtn: { padding: 8 },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937' },
-  headerSub: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+  headerTitle: { fontFamily: fonts.serif, fontSize: fontSize.h3, fontWeight: '700', color: colors.dark.text },
+  headerSub: { fontFamily: fonts.sans, fontSize: fontSize.small, color: colors.gold, marginTop: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   iconBtn: { padding: 8 },
   uncheckAllBtn: {
@@ -373,12 +374,12 @@ const styles = StyleSheet.create({
   errorTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', textAlign: 'center' },
   errorText: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
   retryBtn: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#F97316',
+    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.gold,
     paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, gap: 6, marginTop: 4,
   },
   retryBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
   currentCard: {
-    backgroundColor: '#FFF', borderRadius: 20, padding: 20, gap: 16,
+    backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md,
     shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15, shadowRadius: 12, elevation: 6,
     borderWidth: 2, borderColor: '#FED7AA',

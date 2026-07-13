@@ -1,7 +1,6 @@
 // app/(admin)/events/index.tsx
 // Event list screen — displays real events from Firestore in real time.
 
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
@@ -18,9 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeEvents } from '@/lib/firestore';
 import { HTSLEvent } from '@/lib/types';
+import AdminHeader from '@/components/AdminHeader';
+import { gsDark } from '@/constants/styles';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 
 export default function EventsScreen() {
-  const { appUser, logout } = useAuth();
+  const { appUser } = useAuth();
   const router = useRouter();
   const [events, setEvents] = useState<HTSLEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,19 +188,19 @@ export default function EventsScreen() {
 
         <View style={styles.cardInfo}>
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+            <Ionicons name="calendar-outline" size={16} color={colors.muted} />
             <Text style={styles.infoText}>{formatDate(item.date)}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={16} color="#6B7280" />
+            <Ionicons name="location-outline" size={16} color={colors.muted} />
             <Text style={styles.infoText} numberOfLines={1}>
               {item.venue}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="people-outline" size={16} color="#6B7280" />
+            <Ionicons name="people-outline" size={16} color={colors.muted} />
             <Text style={styles.infoText}>
               {item.tiers.length} Tiers • {totalCapacity} Capacity
             </Text>
@@ -207,39 +209,37 @@ export default function EventsScreen() {
 
         <View style={styles.cardFooter}>
           <Text style={styles.viewEventText}>Manage Event</Text>
-          <Ionicons name="arrow-forward" size={16} color="#6D28D9" />
+          <Ionicons name="arrow-forward" size={16} color={colors.primary} />
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Namaste, {appUser?.displayName ?? 'Admin'} 👋</Text>
-          <Text style={styles.subtitle}>{appUser?.orgId === 'hindu-temple-stl' ? 'Hindu Temple of St. Louis' : appUser?.orgId}</Text>
-        </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.container}>
+      <AdminHeader
+        subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Events"
+        meta="Manage event schedules, venues, seating, and registrations"
+        right={
+          <TouchableOpacity onPress={() => router.replace('/home' as any)}>
+            <Text style={gsDark.link}>← Back</Text>
+          </TouchableOpacity>
+        }
+      />
       {/* Search and Action Bar */}
       <View style={styles.actionsBar}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+          <Ionicons name="search-outline" size={20} color={colors.muted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search events..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery !== '' && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearSearchBtn}>
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
             </TouchableOpacity>
           )}
         </View>
@@ -265,13 +265,15 @@ export default function EventsScreen() {
           style={styles.createBtn}
           onPress={() => router.push('/(admin)/events/create')}
         >
-          <Ionicons name="add" size={22} color="#FFF" />
+          <Ionicons name="add" size={22} color={colors.dark.bg} />
+          <Text style={styles.createBtnText}>Create Event</Text>
         </TouchableOpacity>
       </View>
 
       {/* Dynamic Horizontal Date Filter Tabs */}
       <View style={styles.dateTabsContainer}>
         <ScrollView 
+          style={styles.dateTabs}
           horizontal 
           showsHorizontalScrollIndicator={false} 
           contentContainerStyle={styles.dateTabsScrollContent}
@@ -377,7 +379,7 @@ export default function EventsScreen() {
       {/* Events List */}
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6D28D9" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : filteredAndSortedEvents.length === 0 ? (
         <View style={styles.emptyState}>
@@ -409,23 +411,26 @@ export default function EventsScreen() {
         </View>
       ) : (
         <FlatList
+          style={styles.list}
           data={filteredAndSortedEvents}
           renderItem={renderEventItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic"
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
   },
   header: {
+    display: 'none',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -449,62 +454,65 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
   },
   actionsBar: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    gap: 12,
+    flexWrap: 'wrap',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    gap: spacing.md,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    minWidth: 240,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    gap: 8,
+    borderColor: colors.inputBorder,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
   searchInput: {
     flex: 1,
     height: 44,
-    fontSize: 15,
-    color: '#111827',
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body,
+    color: colors.heading,
   },
   createBtn: {
-    width: 44,
     height: 44,
-    backgroundColor: '#6D28D9',
-    borderRadius: 12,
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    backgroundColor: colors.gold,
+    borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6D28D9',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
   },
+  createBtnText: { fontFamily: fonts.sans, fontSize: fontSize.body, fontWeight: '700', color: colors.dark.bg },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  list: { flex: 1, minHeight: 0 },
   listContent: {
-    paddingHorizontal: 24,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.xl,
     paddingBottom: 24,
-    gap: 16,
+    gap: spacing.lg,
   },
   eventCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: colors.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -514,9 +522,10 @@ const styles = StyleSheet.create({
   },
   eventName: {
     flex: 1,
-    fontSize: 18,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h2,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.primary,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -550,7 +559,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   infoRow: {
     flexDirection: 'row',
@@ -558,8 +567,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoText: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontFamily: fonts.sans,
+    fontSize: fontSize.label,
+    color: colors.body,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -570,7 +580,7 @@ const styles = StyleSheet.create({
   viewEventText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6D28D9',
+    color: colors.primary,
   },
   emptyState: {
     flex: 1,
@@ -593,10 +603,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   emptyCreateBtn: {
-    backgroundColor: '#6D28D9',
+    backgroundColor: colors.primary,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: radius.sm + 2,
     marginTop: 8,
   },
   emptyCreateBtnText: {
@@ -610,17 +620,17 @@ const styles = StyleSheet.create({
   filterToggleBtn: {
     width: 44,
     height: 44,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
+    borderColor: colors.inputBorder,
+    borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   filterToggleBtnActive: {
-    backgroundColor: '#6D28D9',
-    borderColor: '#6D28D9',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterBadge: {
     position: 'absolute',
@@ -641,12 +651,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   filterPanel: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 24,
+    backgroundColor: colors.surface,
+    width: '100%',
+    maxWidth: 1060,
+    alignSelf: 'center',
+    marginHorizontal: 0,
     marginBottom: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     padding: 16,
     gap: 16,
     shadowColor: '#000000',
@@ -668,7 +681,7 @@ const styles = StyleSheet.create({
   resetText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6D28D9',
+    color: colors.primary,
   },
   filterSection: {
     gap: 8,
@@ -692,14 +705,14 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   chipActive: {
-    backgroundColor: '#F3E8FF',
-    borderColor: '#C084FC',
+    backgroundColor: colors.tipBg,
+    borderColor: colors.gold,
   },
   chipText: {
     fontSize: 13,
@@ -707,24 +720,25 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   chipTextActive: {
-    color: '#7E22CE',
+    color: colors.primary,
     fontWeight: '600',
   },
   dateTabsContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
     paddingBottom: 12,
   },
+  dateTabs: { width: '100%', maxWidth: 1100, alignSelf: 'center' },
   dateTabsScrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xl,
     gap: 8,
   },
   dateTab: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.02,
@@ -732,8 +746,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   dateTabActive: {
-    backgroundColor: '#6D28D9',
-    borderColor: '#6D28D9',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   dateTabText: {
     fontSize: 13,

@@ -233,37 +233,44 @@ export default function PriestViewScreen() {
     };
   }, [fetchRecords]);
 
-  const markCompleted = useCallback(async (record: SankalpamRecord) => {
-    const isSponsor = record.source === "sponsors";
-    if (isSponsor && (dateFilter === ALL || sevaFilter === ALL)) {
-      setError("Select a specific date and seva before completing a sponsor.");
-      return;
-    }
-    const eventName = isSponsor ? sevaFilter : record.eventName;
-    const eventDate = isSponsor ? dateFilter : normalizeDate(record.eventDate);
-    if (!isSponsor) optimisticDone.current.add(record.id);
-    setRecords((prev) =>
-      prev.map((r) => {
-        if (r.id !== record.id) return r;
-        if (!isSponsor) return { ...r, completed: true };
-        return {
-          ...r,
-          completedEventKeys: [
-            ...r.completedEventKeys,
-            `${eventName.trim().toLowerCase()}|${eventDate.toLowerCase()}`,
-          ],
-        };
-      }),
-    );
-    try {
-      await apiComplete(record, true, eventName, eventDate);
-      setError(null);
-    } catch (err: any) {
-      optimisticDone.current.delete(record.id);
-      await fetchRecords().catch(() => {});
-      setError(`Could not save: ${String(err.message || err)}`);
-    }
-  }, [dateFilter, sevaFilter, fetchRecords]);
+  const markCompleted = useCallback(
+    async (record: SankalpamRecord) => {
+      const isSponsor = record.source === "sponsors";
+      if (isSponsor && (dateFilter === ALL || sevaFilter === ALL)) {
+        setError(
+          "Select a specific date and seva before marking sponsor as completed.",
+        );
+        return;
+      }
+      const eventName = isSponsor ? sevaFilter : record.eventName;
+      const eventDate = isSponsor
+        ? dateFilter
+        : normalizeDate(record.eventDate);
+      if (!isSponsor) optimisticDone.current.add(record.id);
+      setRecords((prev) =>
+        prev.map((r) => {
+          if (r.id !== record.id) return r;
+          if (!isSponsor) return { ...r, completed: true };
+          return {
+            ...r,
+            completedEventKeys: [
+              ...r.completedEventKeys,
+              `${eventName.trim().toLowerCase()}|${eventDate.toLowerCase()}`,
+            ],
+          };
+        }),
+      );
+      try {
+        await apiComplete(record, true, eventName, eventDate);
+        setError(null);
+      } catch (err: any) {
+        optimisticDone.current.delete(record.id);
+        await fetchRecords().catch(() => {});
+        setError(`Could not save: ${String(err.message || err)}`);
+      }
+    },
+    [dateFilter, sevaFilter, fetchRecords],
+  );
 
   const syncFromDrive = useCallback(async () => {
     setSyncing(true);
@@ -372,11 +379,12 @@ export default function PriestViewScreen() {
   // Sponsors always remain eligible. A completion hides one only for the
   // currently selected event/date pair.
   const visibleSponsors = useMemo(
-    () => sponsors.filter((s) => {
-      if (dateFilter === ALL || sevaFilter === ALL) return true;
-      const selectedKey = `${sevaFilter.trim().toLowerCase()}|${dateFilter.toLowerCase()}`;
-      return !s.completedEventKeys.includes(selectedKey);
-    }),
+    () =>
+      sponsors.filter((s) => {
+        if (dateFilter === ALL || sevaFilter === ALL) return true;
+        const selectedKey = `${sevaFilter.trim().toLowerCase()}|${dateFilter.toLowerCase()}`;
+        return !s.completedEventKeys.includes(selectedKey);
+      }),
     [sponsors, dateFilter, sevaFilter],
   );
 

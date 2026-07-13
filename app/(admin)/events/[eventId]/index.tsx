@@ -1,7 +1,6 @@
 // app/(admin)/events/[eventId]/index.tsx
 // Event Dashboard — shows quick statistics and provides links to all sub-management tools.
 
-import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -18,6 +17,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeEvent, subscribeRegistrations, updateEvent } from '@/lib/firestore';
 import { HTSLEvent, Registration } from '@/lib/types';
+import AdminHeader from '@/components/AdminHeader';
+import { gsDark } from '@/constants/styles';
+import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
 
 export default function EventDashboardScreen() {
   const { appUser } = useAuth();
@@ -53,14 +55,14 @@ export default function EventDashboardScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6D28D9" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (!event) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.errorText}>Event not found</Text>
           <TouchableOpacity
@@ -76,7 +78,7 @@ export default function EventDashboardScreen() {
             <Text style={styles.backLinkText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -151,24 +153,30 @@ export default function EventDashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/(admin)/events')} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#374151" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Event Dashboard</Text>
-        <TouchableOpacity onPress={toggleEventStatus} style={styles.statusToggleBtn}>
-          {getStatusBadge(event.status)}
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <AdminHeader
+        subtitle={`Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · ${event.name}`}
+        right={
+          <>
+            <TouchableOpacity onPress={toggleEventStatus} style={styles.statusToggleBtn}>
+              {getStatusBadge(event.status)}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.replace('/(admin)/events')}>
+              <Text style={gsDark.link}>← Back</Text>
+            </TouchableOpacity>
+          </>
+        }
+      />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+      >
         {/* Event Main Info */}
         <View style={styles.eventCard}>
-          <Text style={styles.eventName}>{event.name}</Text>
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+            <Ionicons name="calendar-outline" size={16} color={colors.muted} />
             <Text style={styles.infoText}>
               {event.date.toLocaleDateString('en-US', {
                 weekday: 'short',
@@ -181,7 +189,7 @@ export default function EventDashboardScreen() {
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={16} color="#6B7280" />
+            <Ionicons name="location-outline" size={16} color={colors.muted} />
             <Text style={styles.infoText}>{event.venue}</Text>
           </View>
         </View>
@@ -311,14 +319,14 @@ export default function EventDashboardScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
   },
   center: {
     flex: 1,
@@ -350,8 +358,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 8,
   },
   badgeActive: {
@@ -379,21 +387,31 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   scrollContent: {
-    padding: 20,
-    gap: 20,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+    paddingBottom: 32,
   },
   eventCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 8,
+    borderColor: colors.border,
+    gap: spacing.xl,
   },
   eventName: {
-    fontSize: 22,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h1,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.primary,
     marginBottom: 4,
   },
   infoRow: {
@@ -402,48 +420,55 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoText: {
-    fontSize: 14,
-    color: '#4B5563',
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body,
+    color: colors.body,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
+    minWidth: 150,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 24,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h2,
     fontWeight: '800',
-    color: '#111827',
+    color: colors.primary,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    fontFamily: fonts.sans,
+    fontSize: fontSize.small,
+    color: colors.muted,
+    marginTop: 1,
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 16,
+    borderColor: colors.border,
+    gap: spacing.md,
   },
   cardTitle: {
-    fontSize: 16,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h3,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.heading,
   },
   sectionItem: {
-    gap: 6,
+    gap: 4,
   },
   sectionColorIndicator: {
     width: 10,
@@ -461,17 +486,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionName: {
-    fontSize: 14,
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.heading,
   },
   sectionStats: {
-    fontSize: 13,
-    color: '#6B7280',
+    fontFamily: fonts.sans,
+    fontSize: fontSize.label,
+    color: colors.muted,
   },
   progressBarBg: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
+    height: 6,
+    backgroundColor: colors.surfaceSoft,
     borderRadius: 4,
     overflow: 'hidden',
     position: 'relative',
@@ -481,46 +508,50 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   gridHeader: {
-    fontSize: 16,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h3,
     fontWeight: '700',
-    color: '#374151',
-    marginTop: 8,
-    marginBottom: -8,
+    color: colors.heading,
+    marginTop: 2,
+    marginBottom: -4,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing.sm,
   },
   gridItem: {
-    width: '48%',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
+    flex: 1,
+    minWidth: 220,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 8,
+    borderColor: colors.border,
+    gap: 4,
   },
   gridIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   gridLabel: {
-    fontSize: 15,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.body,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.primary,
   },
   gridSub: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontFamily: fonts.sans,
+    fontSize: fontSize.small,
+    color: colors.muted,
   },
   fullWidthItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.sm,
   },
   errorText: {
     fontSize: 16,
@@ -532,7 +563,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   backLinkText: {
-    color: '#6D28D9',
+    color: colors.primary,
     fontWeight: '700',
   },
 });
