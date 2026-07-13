@@ -342,7 +342,11 @@ export const gsDark = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  omGlyph: { fontFamily: fonts.serif, fontSize: rem(1.625), color: colors.gold },
+  omGlyph: {
+    fontFamily: fonts.serif,
+    fontSize: rem(1.625),
+    color: colors.gold,
+  },
   title: {
     fontFamily: fonts.serif,
     fontSize: rem(1.875),
@@ -434,7 +438,7 @@ export const gsDark = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gold,
     backgroundColor: colors.dark.surface,
-    overflow: "scroll",
+    overflow: "hidden",
     ...(Platform.OS === "web"
       ? { boxShadow: `0 8px 24px ${alpha(colors.black, 0.5)}` }
       : {}),

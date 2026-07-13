@@ -375,15 +375,22 @@ export default function PriestViewScreen() {
   }, [events]);
 
   const sevaOptions = useMemo<Option[]>(() => {
+    const eventsForSelectedDate = events.filter(
+      (event) =>
+        dateFilter === ALL ||
+        normalizeDate(event.date.toISOString()) === dateFilter,
+    );
     const eventNames = [
-      ...new Set(events.map((event) => event.name).filter(Boolean)),
+      ...new Set(
+        eventsForSelectedDate.map((event) => event.name).filter(Boolean),
+      ),
     ].sort();
 
     return [
       { value: ALL, label: "All Sevas" },
       ...eventNames.map((s) => ({ value: s, label: s })),
     ];
-  }, [events]);
+  }, [events, dateFilter]);
 
   const timeOptions = useMemo<Option[]>(() => {
     const inScope = registered.filter(
@@ -478,6 +485,7 @@ export default function PriestViewScreen() {
           fullWidth={narrow}
           onSelect={(v) => {
             setDateFilter(v);
+            setSevaFilter(ALL);
             setTimeFilter(ALL);
           }}
         />
