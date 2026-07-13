@@ -1,17 +1,12 @@
 // app/(admin)/priest-view.tsx
-// Priest Live Sankalpam View — large-screen list of registered devotees
-// (Name / Spouse / Gothram) filtered by date, seva and time. Data lives in
-// the destination Google Sheet, accessed through an Apps Script Web App
-// (google-apps-script/README.md). Tapping ✓ marks the row completed in the
-// sheet; Sync pulls new rows from the source sheets without touching
-// existing ones.
+// Priest Live Sankalpam View — large-screen list of registered devotees and sponsors.
+// (Name / Spouse / Gothram) filtered by date and seva. Source rows are read
+// live through an Apps Script Web App; only completion history is written to
+// the destination sheet. Sponsors remain eligible for every event/date.
 
 import AdminHeader from "@/components/AdminHeader";
 import { gsDark } from "@/constants/styles";
 import { colors } from "@/constants/theme";
-import { useAuth } from "@/context/AuthContext";
-import { subscribeEvents } from "@/lib/firestore";
-import { HTSLEvent } from "@/lib/types";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -51,7 +46,8 @@ function requireScriptUrl(): string {
 
 async function apiRecords(): Promise<SankalpamRecord[]> {
   const res = await fetch(`${requireScriptUrl()}?action=records`);
-  return (await parseApi(res)).records;
+  const payload = await parseApi(res);
+  return payload.records;
 }
 
 // POSTs use a text/plain body (no JSON content-type) to avoid a CORS
@@ -59,13 +55,20 @@ async function apiRecords(): Promise<SankalpamRecord[]> {
 async function apiComplete(
   record: SankalpamRecord,
   completed: boolean,
+  eventName: string,
+  eventDate: string,
 ): Promise<void> {
   const res = await fetch(requireScriptUrl(), {
     method: "POST",
     body: JSON.stringify({
       action: "complete",
-      id: record.id,
+      recordType: record.source,
+      personKey: record.personKey,
       name: record.name,
+      spouseName: record.spouseName,
+      gothram: record.gothram,
+      eventName,
+      eventDate,
       completed,
     }),
   });
@@ -77,13 +80,15 @@ async function apiRefresh(): Promise<SankalpamRecord[]> {
     method: "POST",
     body: JSON.stringify({ action: "refresh" }),
   });
-  return (await parseApi(res)).records;
+  const payload = await parseApi(res);
+  return payload.records;
 }
 
 const ALL = "__all__";
 
 type SankalpamRecord = {
   id: string;
+  personKey: string;
   source: string;
   name: string;
   spouseName: string;
@@ -92,6 +97,7 @@ type SankalpamRecord = {
   eventDate: string;
   eventTime: string;
   completed: boolean;
+  completedEventKeys: string[];
 };
 
 type Option = { value: string; label: string };
@@ -160,10 +166,8 @@ function Dropdown({
 // ─── Screen ──────────────────────────────────────────────────────────────────
 export default function PriestViewScreen() {
   const router = useRouter();
-  const { appUser } = useAuth();
   const { width } = useWindowDimensions();
   const narrow = width < NARROW_BREAKPOINT;
-  const [events, setEvents] = useState<HTSLEvent[]>([]);
   const [records, setRecords] = useState<SankalpamRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -192,18 +196,10 @@ export default function PriestViewScreen() {
   }, []);
 
   const fetchRecords = useCallback(async () => {
-    applyServerRecords(await apiRecords());
+    const records = await apiRecords();
+    applyServerRecords(records);
     setError(null);
   }, [applyServerRecords]);
-
-  useEffect(() => {
-    if (!appUser?.orgId) return;
-    const unsubscribe = subscribeEvents(appUser.orgId, (fetchedEvents) => {
-      console.log("Priest view: events updated", fetchedEvents);
-      setEvents(fetchedEvents);
-    });
-    return () => unsubscribe();
-  }, [appUser?.orgId]);
 
   // Initial load + light polling so walk-in edits appear without a reload.
   useEffect(() => {
@@ -228,26 +224,42 @@ export default function PriestViewScreen() {
   }, [fetchRecords]);
 
   const markCompleted = useCallback(async (record: SankalpamRecord) => {
-    // Optimistic: drop from queue immediately, restore on failure.
-    optimisticDone.current.add(record.id);
+    const isSponsor = record.source === "sponsors";
+    if (isSponsor && (dateFilter === ALL || sevaFilter === ALL)) {
+      setError("Select a specific date and seva before completing a sponsor.");
+      return;
+    }
+    const eventName = isSponsor ? sevaFilter : record.eventName;
+    const eventDate = isSponsor ? dateFilter : normalizeDate(record.eventDate);
+    if (!isSponsor) optimisticDone.current.add(record.id);
     setRecords((prev) =>
-      prev.map((r) => (r.id === record.id ? { ...r, completed: true } : r)),
+      prev.map((r) => {
+        if (r.id !== record.id) return r;
+        if (!isSponsor) return { ...r, completed: true };
+        return {
+          ...r,
+          completedEventKeys: [
+            ...r.completedEventKeys,
+            `${eventName.trim().toLowerCase()}|${eventDate.toLowerCase()}`,
+          ],
+        };
+      }),
     );
     try {
-      await apiComplete(record, true);
+      await apiComplete(record, true, eventName, eventDate);
+      setError(null);
     } catch (err: any) {
       optimisticDone.current.delete(record.id);
-      setRecords((prev) =>
-        prev.map((r) => (r.id === record.id ? { ...r, completed: false } : r)),
-      );
+      await fetchRecords().catch(() => {});
       setError(`Could not save: ${String(err.message || err)}`);
     }
-  }, []);
+  }, [dateFilter, sevaFilter, fetchRecords]);
 
   const syncFromDrive = useCallback(async () => {
     setSyncing(true);
     try {
-      applyServerRecords(await apiRefresh());
+      const newRecords = await apiRefresh();
+      applyServerRecords(newRecords);
       setError(null);
     } catch (err: any) {
       setError(`Sync failed: ${String(err.message || err)}`);
@@ -258,13 +270,16 @@ export default function PriestViewScreen() {
 
   // ── Derived lists ──
   const pending = useMemo(() => records.filter((r) => !r.completed), [records]);
-  // Rows without any event are standing sponsors, shown under every seva.
   const sponsors = useMemo(
-    () => pending.filter((r) => !r.eventName),
-    [pending],
+    () => records.filter((r) => r.source === "sponsors"),
+    [records],
+  );
+  const allRegistered = useMemo(
+    () => records.filter((r) => r.source !== "sponsors"),
+    [records],
   );
   const registered = useMemo(
-    () => pending.filter((r) => r.eventName),
+    () => pending.filter((r) => r.source !== "sponsors"),
     [pending],
   );
 
@@ -272,7 +287,7 @@ export default function PriestViewScreen() {
     const trimmed = String(value ?? "").trim();
     if (!trimmed) return trimmed;
 
-    const cleaned = trimmed.replace(/\u00A0/g, " ").trim();
+    const cleaned = trimmed.replace(/ /g, " ").trim();
 
     const isoDateOnly = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (isoDateOnly)
@@ -293,10 +308,11 @@ export default function PriestViewScreen() {
     return `${year}-${month}-${day}`;
   };
 
+  // Extract dates and sevas from all records (pending + completed)
   const dateOptions = useMemo<Option[]>(() => {
     const dates = [
       ...new Set(
-        events.map((event) => normalizeDate(event.date.toISOString())),
+        allRegistered.map((record) => normalizeDate(record.eventDate)).filter(Boolean),
       ),
     ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
@@ -304,18 +320,18 @@ export default function PriestViewScreen() {
       { value: ALL, label: "All Dates" },
       ...dates.map((d) => ({ value: d, label: d })),
     ];
-  }, [events]);
+  }, [allRegistered]);
 
   const sevaOptions = useMemo<Option[]>(() => {
-    const eventNames = [...events]
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map((event) => event.name);
+    const eventNames = [
+      ...new Set(allRegistered.map((record) => record.eventName).filter(Boolean)),
+    ].sort();
 
     return [
       { value: ALL, label: "All Sevas" },
       ...eventNames.map((s) => ({ value: s, label: s })),
     ];
-  }, [events, registered]);
+  }, [allRegistered]);
 
   const timeOptions = useMemo<Option[]>(() => {
     const inScope = registered.filter(
@@ -342,18 +358,23 @@ export default function PriestViewScreen() {
     [dateFilter, sevaFilter, timeFilter],
   );
 
-  const visible = useMemo(
+  const visibleRegistered = useMemo(
     () => registered.filter(matchesFilters),
     [registered, matchesFilters],
   );
 
-  // Sponsors have no event/date/time, so they are always shown.
-  const visibleSponsors = useMemo(() => sponsors, [sponsors]);
+  // Sponsors always remain eligible. A completion hides one only for the
+  // currently selected event/date pair.
+  const visibleSponsors = useMemo(
+    () => sponsors.filter((s) => {
+      if (dateFilter === ALL || sevaFilter === ALL) return true;
+      const selectedKey = `${sevaFilter.trim().toLowerCase()}|${dateFilter.toLowerCase()}`;
+      return !s.completedEventKeys.includes(selectedKey);
+    }),
+    [sponsors, dateFilter, sevaFilter],
+  );
 
-  // Shown = not-completed records matching the current filters (incl. the
-  // sponsors listed under every seva). Awaiting = all not-completed records
-  // in the destination sheet, regardless of filters.
-  const shownCount = visible.length + visibleSponsors.length;
+  const shownCount = visibleRegistered.length + visibleSponsors.length;
   const awaitingCount = pending.length;
 
   // ── Pulsing live dot ──
@@ -449,7 +470,7 @@ export default function PriestViewScreen() {
           {sevaFilter === ALL ? "All Sevas" : sevaFilter}
         </Text>
         <Text style={gsDark.sectionNote}>
-          Sponsors without an event are listed regardless of filters
+          Registered users shown for selected date & seva; sponsors for all
         </Text>
       </View>
 
@@ -469,7 +490,7 @@ export default function PriestViewScreen() {
         </View>
       ) : (
         <ScrollView style={[gsDark.list, narrow && gsDark.listNarrow]}>
-          {visible.length === 0 && visibleSponsors.length === 0 ? (
+          {visibleRegistered.length === 0 && visibleSponsors.length === 0 ? (
             <Text style={gsDark.emptyText}>
               No pending names for this selection yet — new registrations will
               appear here automatically.
@@ -490,7 +511,7 @@ export default function PriestViewScreen() {
                   <View style={gsDark.actionColumn} />
                 </View>
               )}
-              {visible.map((r) => (
+              {visibleRegistered.map((r) => (
                 <Row
                   key={r.id}
                   record={r}

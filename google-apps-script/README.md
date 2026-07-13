@@ -6,17 +6,20 @@ on Google's infrastructure with the deploying account's edit rights.
 
 - **Sources (read-only):** the two registration spreadsheets (IDs configured in
   `priest-sankalpam.gs`).
+  - Registrations: people registered for specific events/dates.
+  - Sponsors: roster of people who can attend any event/date.
 - **Destination (read/write):** spreadsheet `11PV2KgpURj_w1erhuzBdMcaM5nlaEuPE8YvPgHPkOAI`.
-  The script creates one tab per source (`registrations`, `sponsors`) with a
-  `Completed` column.
+  Only its `sponsor_completions` ledger is written. Source rows are read live
+  and are never edited or duplicated into the destination.
 
 ## Behaviour
 
 | App action | What the script does |
 |---|---|
-| Page load | If a destination tab is empty, copies the full source into it; returns all rows. |
-| ✓ Done | Writes `Yes` in the `Completed` column of that row (verifies the row still holds the same name first). |
-| ⟳ Sync | Re-downloads the sources and appends only rows not already in the destination (matched by Name+Event+Date+Time). Existing rows and Completed flags are never modified. |
+| Page load | Reads both source sheets live, merges completion history, and returns all records. |
+| ✓ Done (registration) | Adds one idempotent completion for that registration's event and date. |
+| ✓ Done (sponsor) | Adds one completion for the selected event and date. The sponsor remains eligible everywhere else. |
+| ⟳ Sync | Re-reads both sources and the completion ledger. Newly added source rows appear immediately. |
 
 ## Deploy (one time, ~2 minutes)
 
