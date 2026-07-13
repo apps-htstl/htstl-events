@@ -7,6 +7,9 @@
 import AdminHeader from "@/components/AdminHeader";
 import { gsDark } from "@/constants/styles";
 import { colors } from "@/constants/theme";
+import { useAuth } from "@/context/AuthContext";
+import { subscribeEvents } from "@/lib/firestore";
+import { HTSLEvent } from "@/lib/types";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -166,8 +169,10 @@ function Dropdown({
 // ─── Screen ──────────────────────────────────────────────────────────────────
 export default function PriestViewScreen() {
   const router = useRouter();
+  const { appUser } = useAuth();
   const { width } = useWindowDimensions();
   const narrow = width < NARROW_BREAKPOINT;
+  const [events, setEvents] = useState<HTSLEvent[]>([]);
   const [records, setRecords] = useState<SankalpamRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -200,6 +205,11 @@ export default function PriestViewScreen() {
     applyServerRecords(records);
     setError(null);
   }, [applyServerRecords]);
+
+  useEffect(() => {
+    if (!appUser?.orgId) return;
+    return subscribeEvents(appUser.orgId, setEvents);
+  }, [appUser?.orgId]);
 
   // Initial load + light polling so walk-in edits appear without a reload.
   useEffect(() => {
@@ -274,10 +284,6 @@ export default function PriestViewScreen() {
     () => records.filter((r) => r.source === "sponsors"),
     [records],
   );
-  const allRegistered = useMemo(
-    () => records.filter((r) => r.source !== "sponsors"),
-    [records],
-  );
   const registered = useMemo(
     () => pending.filter((r) => r.source !== "sponsors"),
     [pending],
@@ -308,11 +314,11 @@ export default function PriestViewScreen() {
     return `${year}-${month}-${day}`;
   };
 
-  // Extract dates and sevas from all records (pending + completed)
+  // Filter choices come from the application events API, not sheet rows.
   const dateOptions = useMemo<Option[]>(() => {
     const dates = [
       ...new Set(
-        allRegistered.map((record) => normalizeDate(record.eventDate)).filter(Boolean),
+        events.map((event) => normalizeDate(event.date.toISOString())),
       ),
     ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
@@ -320,18 +326,18 @@ export default function PriestViewScreen() {
       { value: ALL, label: "All Dates" },
       ...dates.map((d) => ({ value: d, label: d })),
     ];
-  }, [allRegistered]);
+  }, [events]);
 
   const sevaOptions = useMemo<Option[]>(() => {
     const eventNames = [
-      ...new Set(allRegistered.map((record) => record.eventName).filter(Boolean)),
+      ...new Set(events.map((event) => event.name).filter(Boolean)),
     ].sort();
 
     return [
       { value: ALL, label: "All Sevas" },
       ...eventNames.map((s) => ({ value: s, label: s })),
     ];
-  }, [allRegistered]);
+  }, [events]);
 
   const timeOptions = useMemo<Option[]>(() => {
     const inScope = registered.filter(
