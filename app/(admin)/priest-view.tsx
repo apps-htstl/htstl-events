@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -158,7 +159,30 @@ function Dropdown({
       </TouchableOpacity>
       {open && (
         <View style={gsDark.menu}>
-          <ScrollView style={{ maxHeight: 340 }}>
+          <ScrollView
+            style={[
+              { maxHeight: 340 },
+              Platform.OS === "web" &&
+                ({
+                  overflowY: "scroll",
+                  overscrollBehavior: "contain",
+                  touchAction: "pan-y",
+                } as any),
+            ]}
+            contentContainerStyle={
+              Platform.OS === "web"
+                ? ({ overflowY: "auto", minHeight: "max-content" } as any)
+                : undefined
+            }
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="always"
+            {...(Platform.OS === "web"
+              ? ({
+                  onWheel: (event: any) => event.stopPropagation(),
+                } as any)
+              : {})}
+          >
             {options.map((o) => (
               <TouchableOpacity
                 key={o.value}
@@ -549,17 +573,9 @@ export default function PriestViewScreen() {
                   <View style={gsDark.actionColumn} />
                 </View>
               )}
-              {visibleRegistered.map((r) => (
-                <Row
-                  key={r.id}
-                  record={r}
-                  stacked={narrow}
-                  onComplete={markCompleted}
-                />
-              ))}
               {visibleSponsors.length > 0 && (
                 <>
-                  <Text style={gsDark.divider}>
+                  <Text style={[gsDark.divider, gsDark.dividerFirst]}>
                     Sponsors · {visibleSponsors.length}
                   </Text>
                   {visibleSponsors.map((r) => (
@@ -567,6 +583,21 @@ export default function PriestViewScreen() {
                       key={r.id}
                       record={r}
                       sponsor
+                      stacked={narrow}
+                      onComplete={markCompleted}
+                    />
+                  ))}
+                </>
+              )}
+              {visibleRegistered.length > 0 && (
+                <>
+                  <Text style={gsDark.divider}>
+                    Registered Event Users · {visibleRegistered.length}
+                  </Text>
+                  {visibleRegistered.map((r) => (
+                    <Row
+                      key={r.id}
+                      record={r}
                       stacked={narrow}
                       onComplete={markCompleted}
                     />

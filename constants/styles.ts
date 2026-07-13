@@ -428,12 +428,13 @@ export const gsDark = StyleSheet.create({
     top: "100%",
     left: 0,
     right: 0,
+    maxHeight: 340,
     marginTop: 4,
     borderRadius: radius.sm + 2,
     borderWidth: 1,
     borderColor: colors.gold,
     backgroundColor: colors.dark.surface,
-    overflow: "hidden",
+    overflow: "scroll",
     ...(Platform.OS === "web"
       ? { boxShadow: `0 8px 24px ${alpha(colors.black, 0.5)}` }
       : {}),
@@ -584,6 +585,7 @@ export const gsDark = StyleSheet.create({
     marginTop: spacing.xxl,
     marginBottom: spacing.xs,
   },
+  dividerFirst: { marginTop: spacing.lg },
 
   // Empty / loading states
   emptyWrap: { alignItems: "center", marginTop: 80, gap: spacing.lg },
