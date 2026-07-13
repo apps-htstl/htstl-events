@@ -44,8 +44,9 @@ function RootLayoutNav() {
         router.replace("/(admin)/home");
       }
     } else if (appUser.role === "poojari") {
-      if (!inPoojariGroup) {
-        router.replace("/(poojari)/seva-registry" as any);
+      const inAdminPriestView = inAdminGroup && segments[1] === "priest-view";
+      if (!inPoojariGroup && !inAdminPriestView) {
+        router.replace("/(admin)/priest-view" as any);
       }
     } else {
       // volunteer

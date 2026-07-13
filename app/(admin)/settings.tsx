@@ -1,14 +1,16 @@
 // app/(admin)/settings.tsx
-// Admin settings screen placeholder.
+// Admin settings screen.
 
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import { colors, fonts, fontSize, spacing, radius } from '@/constants/theme';
+import { gs } from '@/constants/styles';
 
 export default function SettingsScreen() {
   const { appUser, logout } = useAuth();
 
   return (
-    <View style={styles.container}>
+    <View style={gs.screen}>
       <View style={styles.header}>
         <Text style={styles.title}>Settings</Text>
       </View>
@@ -37,34 +39,62 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB', paddingTop: 60 },
   header: {
-    paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingHorizontal: spacing.xl,
+    paddingTop: 60,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  section: { padding: 24, gap: 12 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.8 },
+  title: { 
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h1, 
+    fontWeight: '700', 
+    color: colors.primary 
+  },
+  section: { padding: spacing.xl, gap: spacing.md },
+  sectionTitle: { 
+    fontFamily: fonts.sans,
+    fontSize: fontSize.label, 
+    fontWeight: '700', 
+    color: colors.muted, 
+    textTransform: 'uppercase', 
+    letterSpacing: 0.8 
+  },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: colors.border,
   },
-  label: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
-  value: { fontSize: 14, color: '#111827', fontWeight: '600' },
+  label: { 
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body, 
+    color: colors.body, 
+    fontWeight: '500' 
+  },
+  value: { 
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body, 
+    color: colors.heading, 
+    fontWeight: '600' 
+  },
   logoutButton: {
-    margin: 24,
+    margin: spacing.xl,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerBg,
     alignItems: 'center',
   },
-  logoutText: { color: '#EF4444', fontSize: 14, fontWeight: '600' },
+  logoutText: { 
+    fontFamily: fonts.sans,
+    color: colors.danger, 
+    fontSize: fontSize.body, 
+    fontWeight: '600' 
+  },
 });

@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -395,16 +396,18 @@ export default function ScanScreen() {
             ) : events.length === 0 ? (
               <Text style={styles.noEventsPicker}>No active events available.</Text>
             ) : (
-              events.map((evt) => (
-                <TouchableOpacity
-                  key={evt.id}
-                  style={[styles.pickerItem, selectedEvent?.id === evt.id && styles.pickerItemActive]}
-                  onPress={() => { setSelectedEvent(evt); setShowEventPicker(false); }}
-                >
-                  <Text style={styles.pickerItemText}>{evt.name}</Text>
-                  <Text style={styles.pickerItemVenue}>{evt.venue}</Text>
-                </TouchableOpacity>
-              ))
+              <ScrollView showsVerticalScrollIndicator={true}>
+                {events.map((evt) => (
+                  <TouchableOpacity
+                    key={evt.id}
+                    style={[styles.pickerItem, selectedEvent?.id === evt.id && styles.pickerItemActive]}
+                    onPress={() => { setSelectedEvent(evt); setShowEventPicker(false); }}
+                  >
+                    <Text style={styles.pickerItemText}>{evt.name}</Text>
+                    <Text style={styles.pickerItemVenue}>{evt.venue}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             )}
           </View>
         </View>

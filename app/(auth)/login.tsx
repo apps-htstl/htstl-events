@@ -64,7 +64,7 @@ export default function LoginScreen() {
       if (appUser.role === 'superadmin' || appUser.role === 'eventadmin') {
         router.replace('/(admin)/events');
       } else if (appUser.role === 'poojari') {
-        router.replace('/(poojari)/seva-registry' as any);
+        router.replace('/(admin)/priest-view' as any);
       } else {
         // volunteer and all other roles
         router.replace('/(volunteer)/scan');

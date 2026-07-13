@@ -10,6 +10,7 @@ import { Platform } from "react-native";
 export default function AdminLayout() {
   const { appUser } = useAuth();
   const isSuperAdmin = appUser?.role === "superadmin";
+  const isPoojari = appUser?.role === "poojari";
 
   return (
     <Tabs
@@ -34,6 +35,7 @@ export default function AdminLayout() {
         name="home"
         options={{
           title: "Home",
+          href: isPoojari ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -43,6 +45,7 @@ export default function AdminLayout() {
         name="events"
         options={{
           title: "Events",
+          href: isPoojari ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size} color={color} />
           ),
@@ -52,6 +55,7 @@ export default function AdminLayout() {
         name="seva-registry"
         options={{
           title: "Seva Registry",
+          href: isPoojari ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
@@ -68,21 +72,20 @@ export default function AdminLayout() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate("seva", { screen: "index" });
+            navigation.navigate("priest-view");
           },
         })}
       />
-      {isSuperAdmin && (
-        <Tabs.Screen
-          name="users"
-          options={{
-            title: "Users",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="people-outline" size={size} color={color} />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="users"
+        options={{
+          title: "Users",
+          href: isSuperAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
+          ),
+        }}
+      />
       {/* Priest Live Sankalpam View — full-screen page, not a tab */}
       <Tabs.Screen
         name="priest-view"
@@ -92,6 +95,7 @@ export default function AdminLayout() {
         name="settings"
         options={{
           title: "Settings",
+          href: isPoojari ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           ),
