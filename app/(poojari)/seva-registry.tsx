@@ -16,8 +16,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AdminHeader from '@/components/AdminHeader';
+import { gsDark } from '@/constants/styles';
 import { colors, fonts, fontSize, radius, spacing } from '@/constants/theme';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeSevaLists } from '@/lib/firestore';
@@ -26,8 +27,10 @@ import { SevaList } from '@/lib/types';
 export default function PoojariSevaRegistryScreen() {
   const { appUser, logout } = useAuth();
   const router = useRouter();
+  const { adminPreview } = useLocalSearchParams<{ adminPreview?: string }>();
   const [sevaLists, setSevaLists] = useState<SevaList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const isAdminPreview = adminPreview === '1';
 
   useEffect(() => {
     if (!appUser?.orgId) return;
@@ -81,9 +84,15 @@ export default function PoojariSevaRegistryScreen() {
         subtitle={`Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Seva View`}
         meta={`Namaste, ${appUser?.displayName?.split(' ')[0] || 'Poojari'}`}
         right={
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={22} color={colors.gold} />
-        </TouchableOpacity>
+          isAdminPreview ? (
+            <TouchableOpacity onPress={() => router.replace('/(admin)/seva-registry' as any)}>
+              <Text style={gsDark.link}>← Back</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+              <Ionicons name="log-out-outline" size={22} color={colors.gold} />
+            </TouchableOpacity>
+          )
         }
       />
 

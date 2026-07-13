@@ -89,6 +89,21 @@ async function apiRefresh(): Promise<SankalpamRecord[]> {
 
 const ALL = "__all__";
 
+// Event names come from two independent sources (the events API and Google
+// Sheets). Treat formatting-only differences and an optional participant-count
+// suffix as the same seva while preserving the original values for display.
+const normalizeEventName = (value: string) =>
+  String(value ?? "")
+    .replace(/[\u00a0\u2007\u202f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\s*\(\s*\d[\d,]*\s+participants?\s*\)\s*$/i, "")
+    .trim()
+    .toLocaleLowerCase();
+
+const eventNamesMatch = (left: string, right: string) =>
+  normalizeEventName(left) === normalizeEventName(right);
+
 type SankalpamRecord = {
   id: string;
   personKey: string;
@@ -350,7 +365,7 @@ export default function PriestViewScreen() {
     const inScope = registered.filter(
       (r) =>
         (dateFilter === ALL || normalizeDate(r.eventDate) === dateFilter) &&
-        (sevaFilter === ALL || r.eventName === sevaFilter),
+        (sevaFilter === ALL || eventNamesMatch(r.eventName, sevaFilter)),
     );
     const times = [
       ...new Set(inScope.map((r) => r.eventTime).filter(Boolean)),
@@ -366,7 +381,7 @@ export default function PriestViewScreen() {
   const matchesFilters = useCallback(
     (r: SankalpamRecord) =>
       (dateFilter === ALL || normalizeDate(r.eventDate) === dateFilter) &&
-      (sevaFilter === ALL || r.eventName === sevaFilter) &&
+      (sevaFilter === ALL || eventNamesMatch(r.eventName, sevaFilter)) &&
       (timeFilter === ALL || r.eventTime === timeFilter),
     [dateFilter, sevaFilter, timeFilter],
   );
@@ -503,7 +518,16 @@ export default function PriestViewScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView style={[gsDark.list, narrow && gsDark.listNarrow]}>
+        <ScrollView
+          style={gsDark.list}
+          contentContainerStyle={[
+            gsDark.listContent,
+            narrow && gsDark.listContentNarrow,
+          ]}
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
           {visibleRegistered.length === 0 && visibleSponsors.length === 0 ? (
             <Text style={gsDark.emptyText}>
               No pending names for this selection yet — new registrations will

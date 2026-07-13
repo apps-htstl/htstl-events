@@ -205,7 +205,10 @@ export default function AdminSevaRegistryScreen() {
         {isSuperAdmin && (
           <TouchableOpacity
             style={styles.superAdminBannerCompact}
-            onPress={() => router.push('/(poojari)/seva-registry' as any)}
+            onPress={() => router.push({
+              pathname: '/(poojari)/seva-registry' as any,
+              params: { adminPreview: '1' },
+            })}
           >
             <Ionicons name="eye-outline" size={16} color={colors.primary} />
             <Text style={styles.superAdminBannerText}>Open full Poojari view</Text>
@@ -229,7 +232,10 @@ export default function AdminSevaRegistryScreen() {
       {isSuperAdmin && (
         <TouchableOpacity
           style={styles.superAdminBanner}
-          onPress={() => router.push('/(poojari)/seva-registry' as any)}
+          onPress={() => router.push({
+            pathname: '/(poojari)/seva-registry' as any,
+            params: { adminPreview: '1' },
+          })}
         >
           <Ionicons name="eye-outline" size={16} color="#F97316" />
           <Text style={styles.superAdminBannerText}>

@@ -308,6 +308,7 @@ export const gsDark = StyleSheet.create({
   // Page scaffolding
   screen: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: colors.dark.bg,
   },
   header: {
@@ -520,7 +521,12 @@ export const gsDark = StyleSheet.create({
   },
 
   // List / table
-  list: { flex: 1, paddingHorizontal: 40, paddingTop: spacing.xl },
+  list: { flex: 1, minHeight: 0 },
+  listContent: {
+    paddingHorizontal: 40,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+  },
   gridHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -619,7 +625,7 @@ export const gsDark = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.xl,
   },
-  listNarrow: { paddingHorizontal: spacing.lg },
+  listContentNarrow: { paddingHorizontal: spacing.lg },
   rowStacked: {
     flexDirection: "column",
     alignItems: "stretch",

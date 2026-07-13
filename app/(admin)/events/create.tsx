@@ -117,7 +117,7 @@ export default function CreateEventScreen() {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={styles.modalCard}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -271,7 +271,22 @@ export default function CreateEventScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(42, 8, 14, 0.58)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 900,
+    maxHeight: '92%',
+    flex: 1,
     backgroundColor: '#F9FAFB',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 160, 23, 0.45)',
+    overflow: 'hidden',
+    boxShadow: '0 24px 56px rgba(42, 8, 14, 0.32)',
   },
   header: {
     flexDirection: 'row',
@@ -292,8 +307,9 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   scrollContent: {
-    padding: 24,
-    gap: 20,
+    padding: 18,
+    gap: 14,
+    paddingBottom: 20,
   },
   errorBanner: {
     flexDirection: 'row',
@@ -314,10 +330,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFF',
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    gap: 16,
+    gap: 12,
   },
   cardTitle: {
     fontSize: 16,
