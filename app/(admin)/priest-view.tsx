@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -156,27 +157,52 @@ function Dropdown({
         </Text>
         <Text style={gsDark.selectCaret}>▾</Text>
       </TouchableOpacity>
-      {open && (
-        <View style={gsDark.menu}>
-          <ScrollView style={{ maxHeight: 340 }}>
-            {options.map((o) => (
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <View style={gsDark.dropdownModalOverlay}>
+          <Pressable
+            style={gsDark.dropdownModalBackdrop}
+            onPress={() => setOpen(false)}
+          />
+          <View style={gsDark.dropdownModalCard}>
+            <View style={gsDark.dropdownModalHeader}>
+              <Text style={gsDark.dropdownModalTitle}>Select {label}</Text>
               <TouchableOpacity
-                key={o.value}
-                style={[
-                  gsDark.menuItem,
-                  o.value === value && gsDark.menuItemActive,
-                ]}
-                onPress={() => {
-                  onSelect(o.value);
-                  setOpen(false);
-                }}
+                style={gsDark.dropdownModalClose}
+                onPress={() => setOpen(false)}
               >
-                <Text style={gsDark.menuItemText}>{o.label}</Text>
+                <Text style={gsDark.dropdownModalCloseText}>{"\u00d7"}</Text>
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+            </View>
+            <ScrollView
+              style={gsDark.dropdownModalList}
+              contentContainerStyle={gsDark.dropdownModalListContent}
+              showsVerticalScrollIndicator
+              keyboardShouldPersistTaps="always"
+            >
+              {options.map((o) => (
+                <TouchableOpacity
+                  key={o.value}
+                  style={[
+                    gsDark.menuItem,
+                    o.value === value && gsDark.menuItemActive,
+                  ]}
+                  onPress={() => {
+                    onSelect(o.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Text style={gsDark.menuItemText}>{o.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
@@ -351,15 +377,22 @@ export default function PriestViewScreen() {
   }, [events]);
 
   const sevaOptions = useMemo<Option[]>(() => {
+    const eventsForSelectedDate = events.filter(
+      (event) =>
+        dateFilter === ALL ||
+        normalizeDate(event.date.toISOString()) === dateFilter,
+    );
     const eventNames = [
-      ...new Set(events.map((event) => event.name).filter(Boolean)),
+      ...new Set(
+        eventsForSelectedDate.map((event) => event.name).filter(Boolean),
+      ),
     ].sort();
 
     return [
       { value: ALL, label: "All Sevas" },
       ...eventNames.map((s) => ({ value: s, label: s })),
     ];
-  }, [events]);
+  }, [events, dateFilter]);
 
   const timeOptions = useMemo<Option[]>(() => {
     const inScope = registered.filter(
@@ -429,7 +462,12 @@ export default function PriestViewScreen() {
 
   // ── Render ──
   return (
-    <View style={gsDark.screen}>
+    <ScrollView
+      style={gsDark.screen}
+      contentContainerStyle={gsDark.pageScrollContent}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator
+    >
       {/* Header */}
       <AdminHeader
         subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · Priest Sankalpam View"
@@ -454,6 +492,7 @@ export default function PriestViewScreen() {
           fullWidth={narrow}
           onSelect={(v) => {
             setDateFilter(v);
+            setSevaFilter(ALL);
             setTimeFilter(ALL);
           }}
         />
@@ -518,15 +557,11 @@ export default function PriestViewScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView
-          style={gsDark.list}
-          contentContainerStyle={[
+        <View
+          style={[
             gsDark.listContent,
             narrow && gsDark.listContentNarrow,
           ]}
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator
-          nestedScrollEnabled
         >
           {visibleRegistered.length === 0 && visibleSponsors.length === 0 ? (
             <Text style={gsDark.emptyText}>
@@ -575,9 +610,9 @@ export default function PriestViewScreen() {
               )}
             </>
           )}
-        </ScrollView>
+        </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 

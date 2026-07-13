@@ -311,6 +311,10 @@ export const gsDark = StyleSheet.create({
     minHeight: 0,
     backgroundColor: colors.dark.bg,
   },
+  pageScrollContent: {
+    flexGrow: 1,
+    backgroundColor: colors.dark.bg,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -445,6 +449,65 @@ export const gsDark = StyleSheet.create({
     fontSize: rem(0.9375),
     color: colors.dark.text,
   },
+  dropdownModalOverlay: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  dropdownModalBackdrop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: alpha(colors.black, 0.62),
+  },
+  dropdownModalCard: {
+    width: "100%",
+    maxWidth: 620,
+    maxHeight: "78%",
+    minHeight: 240,
+    overflow: "hidden",
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    backgroundColor: colors.dark.surface,
+    ...(Platform.OS === "web"
+      ? { boxShadow: `0 24px 60px ${alpha(colors.black, 0.65)}` }
+      : {}),
+  },
+  dropdownModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: alpha(colors.gold, 0.35),
+  },
+  dropdownModalTitle: {
+    flex: 1,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h3,
+    fontWeight: "700",
+    color: colors.dark.text,
+  },
+  dropdownModalClose: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+  },
+  dropdownModalCloseText: {
+    fontFamily: fonts.sans,
+    fontSize: rem(1.75),
+    lineHeight: rem(1.75),
+    color: colors.gold,
+  },
+  dropdownModalList: { flex: 1, minHeight: 0 },
+  dropdownModalListContent: { paddingVertical: spacing.sm },
 
   // Buttons
   btnGold: {
