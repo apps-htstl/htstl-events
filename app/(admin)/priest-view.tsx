@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { subscribeEvents } from "@/lib/firestore";
 import { HTSLEvent } from "@/lib/types";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
