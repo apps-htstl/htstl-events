@@ -260,7 +260,8 @@ export default function PriestViewScreen() {
     return subscribeEvents(appUser.orgId, setEvents);
   }, [appUser?.orgId]);
 
-  // Initial load + light polling so walk-in edits appear without a reload.
+  // Load once when the page opens. Later refreshes happen only after a local
+  // completion update or when an admin explicitly syncs from Drive.
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -273,12 +274,8 @@ export default function PriestViewScreen() {
       }
     };
     load();
-    const poll = setInterval(() => {
-      fetchRecords().catch(() => {});
-    }, 5000);
     return () => {
       cancelled = true;
-      clearInterval(poll);
     };
   }, [fetchRecords]);
 
@@ -309,12 +306,21 @@ export default function PriestViewScreen() {
           };
         }),
       );
+      let completionSaved = false;
       try {
         await apiComplete(record, true, eventName, eventDate);
+        completionSaved = true;
+        await fetchRecords();
         setError(null);
       } catch (err: any) {
+        if (completionSaved) {
+          setError(`Saved, but could not sync: ${String(err.message || err)}`);
+          return;
+        }
         optimisticDone.current.delete(record.id);
-        await fetchRecords().catch(() => {});
+        setRecords((prev) =>
+          prev.map((current) => (current.id === record.id ? record : current)),
+        );
         setError(`Could not save: ${String(err.message || err)}`);
       }
     },
