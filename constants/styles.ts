@@ -620,7 +620,10 @@ export const gsDark = StyleSheet.create({
   titleNarrow: { fontSize: fontSize.h2 },
   subtitleNarrow: { fontSize: fontSize.label },
   filterBarNarrow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
     paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
     gap: spacing.md,
   },
   dropdownFull: { minWidth: "100%" },

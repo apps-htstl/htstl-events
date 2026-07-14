@@ -491,67 +491,59 @@ export default function PriestViewScreen() {
         }
       />
 
-      {/* Filters */}
-      <View style={[gsDark.filterBar, narrow && gsDark.filterBarNarrow]}>
-        <Dropdown
-          label="Date"
-          value={dateFilter}
-          options={dateOptions}
-          minWidth={220}
-          fullWidth={narrow}
-          onSelect={(v) => {
-            setDateFilter(v);
-            setSevaFilter(ALL);
-            setTimeFilter(ALL);
-          }}
-        />
-        <Dropdown
-          label="Seva"
-          value={sevaFilter}
-          options={sevaOptions}
-          minWidth={narrow ? 220 : 320}
-          fullWidth={narrow}
-          onSelect={(v) => {
-            setSevaFilter(v);
-            setTimeFilter(ALL);
-          }}
-        />
-        {/* <Dropdown
-          label="Time"
-          value={timeFilter}
-          options={timeOptions}
-          minWidth={160}
-          fullWidth={narrow}
-          onSelect={setTimeFilter}
-        /> */}
-        <TouchableOpacity
-          style={[
-            gsDark.btnGold,
-            narrow && gsDark.btnFull,
-            syncing && gsDark.disabled,
-          ]}
-          onPress={syncFromDrive}
-          disabled={syncing}
-        >
-          {syncing ? (
-            <ActivityIndicator size="small" color={colors.dark.bg} />
-          ) : (
-            <Text style={gsDark.btnGoldText}>⟳ Sync from Drive</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+      {/* Filters — fixed on wide, inline (scrollable) on narrow */}
+      {!narrow && (
+        <View style={gsDark.filterBar}>
+          <Dropdown
+            label="Date"
+            value={dateFilter}
+            options={dateOptions}
+            minWidth={220}
+            fullWidth={false}
+            onSelect={(v) => {
+              setDateFilter(v);
+              setSevaFilter(ALL);
+              setTimeFilter(ALL);
+            }}
+          />
+          <Dropdown
+            label="Seva"
+            value={sevaFilter}
+            options={sevaOptions}
+            minWidth={320}
+            fullWidth={false}
+            onSelect={(v) => {
+              setSevaFilter(v);
+              setTimeFilter(ALL);
+            }}
+          />
+          <TouchableOpacity
+            style={[gsDark.btnGold, syncing && gsDark.disabled]}
+            onPress={syncFromDrive}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <ActivityIndicator size="small" color={colors.dark.bg} />
+            ) : (
+              <Text style={gsDark.btnGoldText}>⟳ Sync from Drive</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* Section heading */}
-      <View style={[gsDark.sectionRow, narrow && gsDark.sectionRowNarrow]}>
-        <Text style={gsDark.sectionTitle}>
-          {sevaFilter === ALL ? "All Sevas" : sevaFilter}
-        </Text>
-        <Text style={gsDark.sectionNote}>
-          Registered users shown for selected date & seva; sponsors for all
-        </Text>
-      </View>
+      {/* Section heading — fixed on wide only */}
+      {!narrow && (
+        <View style={gsDark.sectionRow}>
+          <Text style={gsDark.sectionTitle}>
+            {sevaFilter === ALL ? "All Sevas" : sevaFilter}
+          </Text>
+          <Text style={gsDark.sectionNote}>
+            Registered users shown for selected date & seva; sponsors for all
+          </Text>
+        </View>
+      )}
 
-      {error && (
+      {!narrow && error && (
         <View style={gsDark.errorBar}>
           <Text style={gsDark.errorText}>{error}</Text>
         </View>
@@ -576,6 +568,63 @@ export default function PriestViewScreen() {
           showsVerticalScrollIndicator
           nestedScrollEnabled
         >
+          {/* On narrow: filters, section heading, error scroll with the list */}
+          {narrow && (
+            <>
+              <View style={gsDark.filterBarNarrow}>
+                <Dropdown
+                  label="Date"
+                  value={dateFilter}
+                  options={dateOptions}
+                  minWidth={220}
+                  fullWidth
+                  onSelect={(v) => {
+                    setDateFilter(v);
+                    setSevaFilter(ALL);
+                    setTimeFilter(ALL);
+                  }}
+                />
+                <Dropdown
+                  label="Seva"
+                  value={sevaFilter}
+                  options={sevaOptions}
+                  minWidth={220}
+                  fullWidth
+                  onSelect={(v) => {
+                    setSevaFilter(v);
+                    setTimeFilter(ALL);
+                  }}
+                />
+                <TouchableOpacity
+                  style={[gsDark.btnGold, gsDark.btnFull, syncing && gsDark.disabled]}
+                  onPress={syncFromDrive}
+                  disabled={syncing}
+                >
+                  {syncing ? (
+                    <ActivityIndicator size="small" color={colors.dark.bg} />
+                  ) : (
+                    <Text style={gsDark.btnGoldText}>⟳ Sync from Drive</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={gsDark.sectionRowNarrow}>
+                <Text style={gsDark.sectionTitle}>
+                  {sevaFilter === ALL ? "All Sevas" : sevaFilter}
+                </Text>
+                <Text style={gsDark.sectionNote}>
+                  Registered users shown for selected date & seva; sponsors for all
+                </Text>
+              </View>
+
+              {error && (
+                <View style={gsDark.errorBar}>
+                  <Text style={gsDark.errorText}>{error}</Text>
+                </View>
+              )}
+            </>
+          )}
+
           {visibleRegistered.length === 0 && visibleSponsors.length === 0 ? (
             <Text style={gsDark.emptyText}>
               No pending names for this selection yet — new registrations will
