@@ -647,4 +647,28 @@ export const gsDark = StyleSheet.create({
     alignItems: "stretch",
     marginTop: spacing.xs,
   },
+  sizeControlRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  sizeLabel: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.small,
+    color: colors.dark.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sizeBtn: {
+    padding: 4,
+  },
+  sizeVal: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body,
+    fontWeight: "700",
+    color: colors.gold,
+    minWidth: 40,
+    textAlign: "center",
+  },
 });

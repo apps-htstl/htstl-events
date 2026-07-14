@@ -229,6 +229,7 @@ export default function PriestViewScreen() {
   const [dateFilter, setDateFilter] = useState(ALL);
   const [sevaFilter, setSevaFilter] = useState(ALL);
   const [timeFilter, setTimeFilter] = useState(ALL);
+  const [fontSize, setFontSize] = useState(16);
 
   // Ids marked completed locally whose write may not have reached the sheet
   // yet. Server responses read the sheet, so a poll racing a slow write can
@@ -528,6 +529,17 @@ export default function PriestViewScreen() {
               <Text style={gsDark.btnGoldText}>⟳ Refresh Details</Text>
             )}
           </TouchableOpacity>
+
+          <View style={gsDark.sizeControlRow}>
+            <Text style={gsDark.sizeLabel}>Text Size:</Text>
+            <TouchableOpacity onPress={() => setFontSize(prev => Math.max(12, prev - 2))} style={gsDark.sizeBtn}>
+              <Ionicons name="remove-circle-outline" size={20} color={colors.gold} />
+            </TouchableOpacity>
+            <Text style={gsDark.sizeVal}>{fontSize}px</Text>
+            <TouchableOpacity onPress={() => setFontSize(prev => Math.min(30, prev + 2))} style={gsDark.sizeBtn}>
+              <Ionicons name="add-circle-outline" size={20} color={colors.gold} />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -606,6 +618,17 @@ export default function PriestViewScreen() {
                     <Text style={gsDark.btnGoldText}>⟳ Refresh Details</Text>
                   )}
                 </TouchableOpacity>
+
+                <View style={[gsDark.sizeControlRow, { justifyContent: 'center', marginTop: 4 }]}>
+                  <Text style={gsDark.sizeLabel}>Text Size:</Text>
+                  <TouchableOpacity onPress={() => setFontSize(prev => Math.max(12, prev - 2))} style={gsDark.sizeBtn}>
+                    <Ionicons name="remove-circle-outline" size={20} color={colors.gold} />
+                  </TouchableOpacity>
+                  <Text style={gsDark.sizeVal}>{fontSize}px</Text>
+                  <TouchableOpacity onPress={() => setFontSize(prev => Math.min(30, prev + 2))} style={gsDark.sizeBtn}>
+                    <Ionicons name="add-circle-outline" size={20} color={colors.gold} />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={gsDark.sectionRowNarrow}>
@@ -634,16 +657,12 @@ export default function PriestViewScreen() {
             <>
               {!narrow && (
                 <View style={gsDark.gridHeader}>
-                  <Text style={[gsDark.gridHeaderCell, gsDark.cellLg]}>
-                    Name
-                  </Text>
-                  <Text style={[gsDark.gridHeaderCell, gsDark.cellLg]}>
-                    Spouse Name
-                  </Text>
                   <Text style={[gsDark.gridHeaderCell, gsDark.cellSm]}>
                     Gothram
                   </Text>
-                  <View style={gsDark.actionColumn} />
+                  <Text style={[gsDark.gridHeaderCell, gsDark.cellLg]}>
+                    Name
+                  </Text>
                 </View>
               )}
               {visibleSponsors.length > 0 && (
@@ -657,7 +676,7 @@ export default function PriestViewScreen() {
                       record={r}
                       sponsor
                       stacked={narrow}
-                      onComplete={markCompleted}
+                      fontSize={fontSize}
                     />
                   ))}
                 </>
@@ -672,7 +691,7 @@ export default function PriestViewScreen() {
                       key={r.id}
                       record={r}
                       stacked={narrow}
-                      onComplete={markCompleted}
+                      fontSize={fontSize}
                     />
                   ))}
                 </>
@@ -689,60 +708,38 @@ function Row({
   record,
   sponsor = false,
   stacked = false,
-  onComplete,
+  fontSize = 16,
 }: {
   record: SankalpamRecord;
   sponsor?: boolean;
   stacked?: boolean;
-  onComplete: (record: SankalpamRecord) => void;
+  fontSize?: number;
 }) {
   return (
-    <TouchableOpacity
+    <View
       style={[
         gsDark.row,
         sponsor && gsDark.rowHighlight,
         stacked && gsDark.rowStacked,
       ]}
-      onPress={() => onComplete(record)}
-      activeOpacity={0.7}
     >
-      <View style={stacked ? undefined : gsDark.cellLg}>
-        <Text style={gsDark.rowText}>{record.name}</Text>
-        {!!record.eventTime && (
-          <Text style={gsDark.rowMeta}>{record.eventTime}</Text>
-        )}
-      </View>
-      <Text style={[gsDark.rowText, !stacked && gsDark.cellLg]}>
-        {stacked
-          ? `Spouse: ${record.spouseName || "—"}`
-          : record.spouseName || "—"}
-      </Text>
-      <Text style={[gsDark.rowText, !stacked && gsDark.cellSm]}>
+      {/* Column 1: Gothram */}
+      <Text style={[gsDark.rowText, !stacked && gsDark.cellSm, { fontSize }]}>
         {stacked ? `Gothram: ${record.gothram || "—"}` : record.gothram || "—"}
       </Text>
-      <View style={stacked ? gsDark.actionColumnStacked : gsDark.actionColumn}>
-        <Pressable
-          style={(state) =>
-            [
-              gsDark.btnOutlineGold,
-              stacked && gsDark.btnFull,
-              (state as any).hovered && gsDark.btnOutlineGoldHover,
-            ] as any
-          }
-          onPress={() => onComplete(record)}
-        >
-          {(state) => (
-            <Text
-              style={[
-                gsDark.btnOutlineGoldText,
-                (state as any).hovered && gsDark.btnOutlineGoldTextHover,
-              ]}
-            >
-              Mark as Completed
-            </Text>
-          )}
-        </Pressable>
+
+      {/* Column 2: Name & Spouse Name mixed */}
+      <View style={stacked ? undefined : gsDark.cellLg}>
+        <Text style={[gsDark.rowText, { fontSize }]}>
+          {record.name}
+          {!!record.spouseName && `, ${record.spouseName}`}
+        </Text>
+        {!!record.eventTime && (
+          <Text style={[gsDark.rowMeta, { fontSize: Math.max(11, fontSize - 2) }]}>
+            {record.eventTime}
+          </Text>
+        )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
