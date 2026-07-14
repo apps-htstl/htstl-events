@@ -1,7 +1,7 @@
 // app/(admin)/events/[eventId]/index.tsx
 // Event Dashboard — shows quick statistics and provides links to all sub-management tools.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,12 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { subscribeEvent, subscribeRegistrations, updateEvent } from '@/lib/firestore';
+import { subscribeEvent, subscribeRegistrations, updateEvent, deleteEvent } from '@/lib/firestore';
 import { HTSLEvent, Registration } from '@/lib/types';
 import AdminHeader from '@/components/AdminHeader';
 import { gsDark } from '@/constants/styles';
@@ -29,6 +30,12 @@ export default function EventDashboardScreen() {
   const [event, setEvent] = useState<HTSLEvent | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Title editing state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const titleInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!appUser?.orgId || !eventId) return;
@@ -106,6 +113,78 @@ export default function EventDashboardScreen() {
     }
   });
 
+  const startEditTitle = () => {
+    setTitleDraft(event?.name ?? '');
+    setIsEditingTitle(true);
+    setTimeout(() => titleInputRef.current?.focus(), 50);
+  };
+
+  const cancelEditTitle = () => {
+    setIsEditingTitle(false);
+    setTitleDraft('');
+  };
+
+  const saveTitle = async () => {
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === event?.name) {
+      cancelEditTitle();
+      return;
+    }
+    setIsSavingTitle(true);
+    try {
+      if (appUser?.orgId) {
+        await updateEvent(appUser.orgId, event!.id, { name: trimmed });
+      }
+      setIsEditingTitle(false);
+    } catch {
+      Alert.alert('Error', 'Failed to update event title.');
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  const handleDeleteEvent = () => {
+    const performDelete = async () => {
+      try {
+        if (appUser?.orgId) {
+          await deleteEvent(appUser.orgId, event!.id);
+          router.replace('/(admin)/events');
+        }
+      } catch {
+        Alert.alert('Error', 'Failed to delete event. Please try again.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        `DELETE EVENT\n\nThis will permanently delete "${event.name}" and cannot be undone.\n\nAre you sure?`
+      );
+      if (confirmed) performDelete();
+    } else {
+      Alert.alert(
+        'Delete Event',
+        `This will permanently delete "${event.name}" and all its data. This cannot be undone.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert(
+                'Are you sure?',
+                'This action is irreversible.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Yes, Delete', style: 'destructive', onPress: performDelete },
+                ]
+              );
+            },
+          },
+        ]
+      );
+    }
+  };
+
   const toggleEventStatus = () => {
     const nextStatus = event.status === 'draft' ? 'active' : event.status === 'active' ? 'closed' : 'draft';
     
@@ -155,7 +234,7 @@ export default function EventDashboardScreen() {
   return (
     <View style={styles.container}>
       <AdminHeader
-        subtitle={`Navakundathmaka Shatha Chandi Sahitha Rudra Yagam · ${event.name}`}
+        subtitle="Navakundathmaka Shatha Chandi Sahitha Rudra Yagam"
         right={
           <>
             <TouchableOpacity onPress={toggleEventStatus} style={styles.statusToggleBtn}>
@@ -175,6 +254,49 @@ export default function EventDashboardScreen() {
       >
         {/* Event Main Info */}
         <View style={styles.eventCard}>
+          {/* Editable event title */}
+          <View style={styles.titleEditRow}>
+            {isEditingTitle ? (
+              <>
+                <TextInput
+                  ref={titleInputRef}
+                  style={styles.titleInput}
+                  value={titleDraft}
+                  onChangeText={setTitleDraft}
+                  onSubmitEditing={saveTitle}
+                  returnKeyType="done"
+                  editable={!isSavingTitle}
+                  selectTextOnFocus
+                />
+                <TouchableOpacity
+                  onPress={saveTitle}
+                  disabled={isSavingTitle}
+                  style={[styles.titleActionBtn, styles.titleSaveBtn]}
+                >
+                  {isSavingTitle ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={cancelEditTitle}
+                  disabled={isSavingTitle}
+                  style={[styles.titleActionBtn, styles.titleCancelBtn]}
+                >
+                  <Ionicons name="close" size={16} color={colors.muted} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.eventName}>{event.name}</Text>
+                <TouchableOpacity onPress={startEditTitle} style={styles.editTitleBtn}>
+                  <Ionicons name="pencil-outline" size={15} color={colors.muted} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={16} color={colors.muted} />
             <Text style={styles.infoText}>
@@ -318,6 +440,21 @@ export default function EventDashboardScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Danger Zone */}
+        <View style={styles.dangerCard}>
+          <View style={styles.dangerHeader}>
+            <Ionicons name="warning-outline" size={18} color="#DC2626" />
+            <Text style={styles.dangerTitle}>Danger Zone</Text>
+          </View>
+          <Text style={styles.dangerDesc}>
+            Permanently delete this event and all its associated data. This action cannot be undone.
+          </Text>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteEvent}>
+            <Ionicons name="trash-outline" size={16} color="#fff" />
+            <Text style={styles.deleteBtnText}>Delete Event</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -407,12 +544,48 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     gap: spacing.xl,
   },
+  titleEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+  },
   eventName: {
     fontFamily: fonts.serif,
     fontSize: fontSize.h1,
     fontWeight: '800',
     color: colors.primary,
-    marginBottom: 4,
+    flex: 1,
+  },
+  editTitleBtn: {
+    padding: 4,
+  },
+  titleInput: {
+    flex: 1,
+    fontFamily: fonts.serif,
+    fontSize: fontSize.h1,
+    fontWeight: '800',
+    color: colors.primary,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+    paddingVertical: 2,
+    paddingHorizontal: 0,
+    outlineStyle: 'none',
+  } as any,
+  titleActionBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleSaveBtn: {
+    backgroundColor: colors.primary,
+  },
+  titleCancelBtn: {
+    backgroundColor: colors.surfaceSoft,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   infoRow: {
     flexDirection: 'row',
@@ -552,6 +725,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  dangerCard: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    gap: spacing.sm,
+    marginBottom: 8,
+  },
+  dangerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dangerTitle: {
+    fontFamily: fonts.serif,
+    fontSize: fontSize.body,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  dangerDesc: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.small,
+    color: '#6B7280',
+    lineHeight: 18,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#DC2626',
+    borderRadius: radius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  deleteBtnText: {
+    fontFamily: fonts.sans,
+    fontSize: fontSize.body,
+    fontWeight: '700',
+    color: '#fff',
   },
   errorText: {
     fontSize: 16,

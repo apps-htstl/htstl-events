@@ -109,6 +109,13 @@ export async function updateEvent(
   await updateDoc(eventRef, updateData);
 }
 
+// Delete an event
+export async function deleteEvent(orgId: string, eventId: string): Promise<void> {
+  const { deleteDoc } = await import('firebase/firestore');
+  const eventRef = doc(db, 'orgs', orgId, 'events', eventId);
+  await deleteDoc(eventRef);
+}
+
 // Fetch single event
 export async function getEvent(orgId: string, eventId: string): Promise<HTSLEvent | null> {
   const eventRef = doc(db, 'orgs', orgId, 'events', eventId);
