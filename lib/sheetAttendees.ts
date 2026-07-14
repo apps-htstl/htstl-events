@@ -56,14 +56,11 @@ export function buildRowKey(attendee: Omit<SheetAttendee, 'rowKey'>): string {
   const norm = normalizeText;
 
   if (attendee.phone) {
-    // Phone-only key: phone + eventName + eventDate
     return `phone:${norm(attendee.phone)}|${norm(attendee.eventName)}|${norm(attendee.eventDate)}`;
   }
   if (attendee.email) {
-    // Email-only key
     return `email:${norm(attendee.email)}|${norm(attendee.eventName)}|${norm(attendee.eventDate)}`;
   }
-  // Name-based key (least stable — warn in UI if this is the only option)
   return `name:${norm(attendee.customerName)}|${norm(attendee.gotram)}|${norm(attendee.eventName)}|${norm(attendee.eventDate)}`;
 }
 
@@ -116,7 +113,6 @@ function resolveColumnIndex(headers: string[], field: string): number {
 // ─── Main fetch + parse ──────────────────────────────────────────────────────
 
 export function buildSheetCsvUrl(sheetId: string): string {
-  // gviz/tq endpoint returns CSV and works without OAuth for publicly shared sheets
   return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
 }
 
@@ -128,10 +124,6 @@ export function extractSheetId(url: string): string | null {
 /**
  * Fetch the CSV from a publicly-shared Google Sheet, parse all rows,
  * and optionally filter to only rows matching `eventFilter` in the event column.
- *
- * @param sheetId  - Google Sheet ID
- * @param eventFilter - If provided, only return rows where Event Name == eventFilter
- *                      (case-insensitive). Pass null to return all rows.
  */
 export async function fetchSheetAttendees(
   sheetId: string,
@@ -176,10 +168,7 @@ export async function fetchSheetAttendees(
     const phone        = get(row, idx.phone);
     const email        = get(row, idx.email);
 
-    // Skip rows with no identifying data
     if (!customerName && !phone && !email) continue;
-
-    // Filter by event name if provided
     if (normFilter && normalizeText(eventName) !== normFilter) continue;
 
     const base = { customerName, spouseName, gotram, eventName, eventDate, eventTime, phone, email };
@@ -189,18 +178,12 @@ export async function fetchSheetAttendees(
   return attendees;
 }
 
-// ─── Fuzzy / typo-tolerant search ────────────────────────────────────────────
-//
-// Strategy (no external deps):
-//   1. Exact substring match  → score 1.0
-//   2. All tokens of query appear (in any order) → score 0.8
-//   3. Levenshtein distance <= 2 per token → score 0.5
-//
-// We search across: customerName + spouseName + gotram + phone + email
+// ─── Levenshtein distance ────────────────────────────────────────────────────
 
-/** Compute Levenshtein distance between two short strings. */
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
   const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
     Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
   );
@@ -214,86 +197,106 @@ function levenshtein(a: string, b: string): number {
   return dp[m][n];
 }
 
+// ─── Search ──────────────────────────────────────────────────────────────────
+
 export interface SearchResult {
   attendee: SheetAttendee;
-  score: number;          // 0–1, higher = better match
-  matchedField: string;   // which field triggered the match
+  score: number;
+  matchedField: string;
 }
 
 /**
- * Search attendees by name / phone / email with typo tolerance.
- * Returns results sorted by score descending. Results with score < 0.3 are dropped.
+ * Search attendees with typo-tolerant, cross-field token matching.
+ *
+ * ALL fields (name, spouse, gotram, phone, email) are joined into ONE
+ * combined string per attendee. The query is split into tokens and every
+ * token must appear somewhere in that combined string — either as an exact
+ * substring OR within Levenshtein distance 2 of any word in it.
+ *
+ * Examples that now work correctly:
+ *   "Ramesh Vatsal"   → finds name="Ramesh Kumar"  gotram="Vatsal"
+ *   "Sita Kashyap"    → finds name="Sita Devi"     gotram="Kashyap"
+ *   "9876"            → finds phone containing 9876
+ *   "Ramsh"           → fuzzy matches "Ramesh"
  */
 export function searchAttendees(attendees: SheetAttendee[], query: string): SearchResult[] {
-  if (!query.trim()) return attendees.map((a) => ({ attendee: a, score: 1, matchedField: '' }));
+  if (!query.trim()) {
+    return attendees.map((a) => ({ attendee: a, score: 1, matchedField: '' }));
+  }
 
-  const normQuery = normalizeText(query);
+  const normQuery   = normalizeText(query);
   const queryTokens = normQuery.split(' ').filter(Boolean);
 
   const results: SearchResult[] = [];
 
   for (const attendee of attendees) {
-    const searchTargets: [string, string][] = [
-      [normalizeText(attendee.customerName), 'Customer Name'],
-      [normalizeText(attendee.spouseName),   'Spouse Name'],
-      [normalizeText(attendee.gotram),       'Gotram'],
-      [attendee.phone,                       'Phone'],
-      [normalizeText(attendee.email),        'Email'],
-    ];
+    // Build one combined normalized string for this attendee
+    const combined = normalizeText(
+      [
+        attendee.customerName,
+        attendee.spouseName,
+        attendee.gotram,
+        attendee.phone,
+        attendee.email,
+      ].join(' ')
+    );
+    const combinedWords = combined.split(' ').filter(Boolean);
 
-    let bestScore = 0;
-    let bestField = '';
+    // Every query token must match something in the combined string
+    let totalScore = 0;
+    let allMatched = true;
 
-    for (const [target, fieldLabel] of searchTargets) {
-      if (!target) continue;
-
-      let score = 0;
-
-      // 1. Exact substring match
-      if (target.includes(normQuery)) {
-        score = target === normQuery ? 1.0 : 0.9;
-      }
-      // 2. All query tokens appear in target
-      else if (queryTokens.every((t) => target.includes(t))) {
-        score = 0.8;
-      }
-      // 3. Fuzzy per-token match (Levenshtein)
-      else {
-        const targetTokens = target.split(' ').filter(Boolean);
-        let tokenScore = 0;
-        let matched = 0;
-        for (const qt of queryTokens) {
-          // Find the closest target token
-          const minDist = Math.min(...targetTokens.map((tt) => levenshtein(qt, tt)));
-          // Allow up to 2 edits for longer tokens, 1 for short ones
-          const threshold = qt.length <= 3 ? 1 : 2;
-          if (minDist <= threshold) {
-            tokenScore += 1 - minDist / Math.max(qt.length, 1) * 0.3;
-            matched++;
-          }
-        }
-        if (matched > 0) {
-          score = (tokenScore / queryTokens.length) * 0.6;
-        }
+    for (const qt of queryTokens) {
+      // 1. Exact substring in combined → best score
+      if (combined.includes(qt)) {
+        totalScore += 1.0;
+        continue;
       }
 
-      if (score > bestScore) {
-        bestScore = score;
-        bestField = fieldLabel;
+      // 2. Fuzzy: find the closest word in the combined string
+      const threshold = qt.length <= 3 ? 1 : 2;
+      let minDist = Infinity;
+      for (const cw of combinedWords) {
+        const d = levenshtein(qt, cw);
+        if (d < minDist) minDist = d;
+        if (minDist === 0) break;
+      }
+
+      if (minDist <= threshold) {
+        // distance 0→1.0  1→0.8  2→0.6
+        totalScore += 1.0 - minDist * 0.2;
+      } else {
+        // This token has no match → skip the whole attendee
+        allMatched = false;
+        break;
       }
     }
 
-    if (bestScore >= 0.3) {
-      results.push({ attendee, score: bestScore, matchedField: bestField });
-    }
+    if (!allMatched || queryTokens.length === 0) continue;
+
+    const score = totalScore / queryTokens.length;
+
+    // Determine primary matched field for display hint
+    let matchedField = 'Multiple fields';
+    if (normalizeText(attendee.customerName).includes(normQuery)) matchedField = 'Name';
+    else if (normalizeText(attendee.spouseName).includes(normQuery))  matchedField = 'Spouse';
+    else if (normalizeText(attendee.gotram).includes(normQuery))      matchedField = 'Gotram';
+    else if ((attendee.phone || '').includes(normQuery))              matchedField = 'Phone';
+    else if (normalizeText(attendee.email).includes(normQuery))       matchedField = 'Email';
+
+    results.push({ attendee, score, matchedField });
   }
 
-  return results.sort((a, b) => b.score - a.score);
+  // Higher score first; ties broken alphabetically
+  return results.sort((a, b) =>
+    b.score !== a.score
+      ? b.score - a.score
+      : a.attendee.customerName.localeCompare(b.attendee.customerName)
+  );
 }
 
 /**
  * Detect whether a rowKey is name-based (less stable) vs phone/email based.
- * Used to warn the user in the UI.
  */
 export function isNameBasedKey(rowKey: string): boolean {
   return rowKey.startsWith('name:');
