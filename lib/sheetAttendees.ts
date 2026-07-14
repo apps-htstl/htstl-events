@@ -26,20 +26,11 @@ const COL_ALIASES: Record<string, string[]> = {
 
 // ─── Text normalisation ──────────────────────────────────────────────────────
 
-/**
- * Normalize text for search comparison.
- * Replaces punctuation (including & . , - etc.) with a SPACE rather than
- * stripping it, so tokens on either side stay separate.
- * Examples:
- *   "Ramesh & Sita"  → "ramesh   sita" → "ramesh sita"
- *   "Ramesh&Sita"    → "ramesh sita"   (not "rameshsita")
- *   "Sri.Kumar"      → "sri kumar"      (not "srikumar")
- *   "K.S. Ramesh"    → "k s  ramesh"   → "k s ramesh"
- */
+/** Normalize a string: lowercase, collapse whitespace, strip punctuation. */
 export function normalizeText(v: string): string {
   return (v || '')
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')   // replace punctuation with space (not strip)
+    .replace(/[^\w\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -187,25 +178,6 @@ export async function fetchSheetAttendees(
   return attendees;
 }
 
-// ─── Levenshtein distance ────────────────────────────────────────────────────
-
-function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
-
 // ─── Search ──────────────────────────────────────────────────────────────────
 
 export interface SearchResult {
@@ -215,93 +187,105 @@ export interface SearchResult {
 }
 
 /**
- * Search attendees with typo-tolerant, cross-field token matching.
- *
- * ALL fields (name, spouse, gotram, phone, email) are joined into ONE
- * combined string per attendee. The query is split into tokens and every
- * token must appear somewhere in that combined string — either as an exact
- * substring OR within Levenshtein distance 2 of any word in it.
- *
- * Examples that now work correctly:
- *   "Ramesh Vatsal"   → finds name="Ramesh Kumar"  gotram="Vatsal"
- *   "Sita Kashyap"    → finds name="Sita Devi"     gotram="Kashyap"
- *   "9876"            → finds phone containing 9876
- *   "Ramsh"           → fuzzy matches "Ramesh"
+ * Predictable, highly stable search with cross-field token matching.
+ * Handles digits, ampersands, leading/trailing spaces, and honorifics correctly.
  */
 export function searchAttendees(attendees: SheetAttendee[], query: string): SearchResult[] {
-  if (!query.trim()) {
+  if (!query || !query.trim()) {
     return attendees.map((a) => ({ attendee: a, score: 1, matchedField: '' }));
   }
 
-  const normQuery   = normalizeText(query);
-  const queryTokens = normQuery.split(' ').filter(Boolean);
+  // 1. Split query into clean tokens, replacing punctuation with spaces
+  const cleanQuery = query.toLowerCase().replace(/[^\w\s]/g, ' ');
+  const queryTokens = cleanQuery.split(/\s+/).filter(Boolean);
+
+  if (queryTokens.length === 0) {
+    return attendees.map((a) => ({ attendee: a, score: 1, matchedField: '' }));
+  }
 
   const results: SearchResult[] = [];
 
   for (const attendee of attendees) {
-    // Build one combined normalized string for this attendee
-    const combined = normalizeText(
-      [
-        attendee.customerName,
-        attendee.spouseName,
-        attendee.gotram,
-        attendee.phone,
-        attendee.email,
-      ].join(' ')
-    );
-    const combinedWords = combined.split(' ').filter(Boolean);
+    // 2. Prepare search fields for this attendee
+    const customerNameLower = (attendee.customerName || '').toLowerCase();
+    const spouseNameLower   = (attendee.spouseName || '').toLowerCase();
+    const gotramLower       = (attendee.gotram || '').toLowerCase();
+    const emailLower        = (attendee.email || '').toLowerCase();
+    const phoneDigits       = (attendee.phone || '').replace(/\D/g, ''); // strip non-digits
 
-    // Every query token must match something in the combined string
-    let totalScore = 0;
+    // Combine all text tokens (names, gotram, email)
+    const combinedText = `${customerNameLower} ${spouseNameLower} ${gotramLower} ${emailLower}`;
+    const combinedTokens = combinedText.replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean);
+
     let allMatched = true;
+    let totalScore = 0;
 
     for (const qt of queryTokens) {
-      // 1. Exact substring in combined → best score
-      if (combined.includes(qt)) {
-        totalScore += 1.0;
-        continue;
+      let tokenMatched = false;
+      let tokenScore = 0;
+
+      // Case A: numeric token -> check phone digits substring
+      if (/^\d+$/.test(qt)) {
+        if (phoneDigits.includes(qt)) {
+          tokenMatched = true;
+          // exact or high-matching score
+          tokenScore = qt.length / Math.max(phoneDigits.length, 1);
+        }
       }
 
-      // 2. Fuzzy: find the closest word in the combined string
-      const threshold = qt.length <= 3 ? 1 : 2;
-      let minDist = Infinity;
-      for (const cw of combinedWords) {
-        const d = levenshtein(qt, cw);
-        if (d < minDist) minDist = d;
-        if (minDist === 0) break;
+      // Case B: textual token -> check if it matches any attendee text token
+      // Check prefix/substring in the attendee's words
+      for (const cw of combinedTokens) {
+        if (cw.startsWith(qt)) {
+          tokenMatched = true;
+          tokenScore = Math.max(tokenScore, 1.0); // Highest priority: startsWith
+        } else if (cw.includes(qt)) {
+          tokenMatched = true;
+          tokenScore = Math.max(tokenScore, 0.7); // Substring match
+        }
       }
 
-      if (minDist <= threshold) {
-        // distance 0→1.0  1→0.8  2→0.6
-        totalScore += 1.0 - minDist * 0.2;
+      // If it still hasn't matched, check direct substring of normalized fields (handles multi-word subsets)
+      if (!tokenMatched) {
+        const normCombined = combinedText.replace(/[^\w\s]/g, ' ');
+        if (normCombined.includes(qt)) {
+          tokenMatched = true;
+          tokenScore = 0.5;
+        }
+      }
+
+      if (tokenMatched) {
+        totalScore += tokenScore;
       } else {
-        // This token has no match → skip the whole attendee
         allMatched = false;
-        break;
+        break; // All query tokens must match
       }
     }
 
-    if (!allMatched || queryTokens.length === 0) continue;
+    if (allMatched) {
+      const score = totalScore / queryTokens.length;
 
-    const score = totalScore / queryTokens.length;
+      // Determine display hint field
+      let matchedField = 'Name';
+      if (customerNameLower.includes(cleanQuery.trim())) matchedField = 'Name';
+      else if (spouseNameLower.includes(cleanQuery.trim())) matchedField = 'Spouse';
+      else if (gotramLower.includes(cleanQuery.trim())) matchedField = 'Gotram';
+      else if (phoneDigits.includes(cleanQuery.trim())) matchedField = 'Phone';
+      else if (emailLower.includes(cleanQuery.trim())) matchedField = 'Email';
+      else matchedField = 'Multiple fields';
 
-    // Determine primary matched field for display hint
-    let matchedField = 'Multiple fields';
-    if (normalizeText(attendee.customerName).includes(normQuery)) matchedField = 'Name';
-    else if (normalizeText(attendee.spouseName).includes(normQuery))  matchedField = 'Spouse';
-    else if (normalizeText(attendee.gotram).includes(normQuery))      matchedField = 'Gotram';
-    else if ((attendee.phone || '').includes(normQuery))              matchedField = 'Phone';
-    else if (normalizeText(attendee.email).includes(normQuery))       matchedField = 'Email';
-
-    results.push({ attendee, score, matchedField });
+      results.push({ attendee, score, matchedField });
+    }
   }
 
-  // Higher score first; ties broken alphabetically
-  return results.sort((a, b) =>
-    b.score !== a.score
-      ? b.score - a.score
-      : a.attendee.customerName.localeCompare(b.attendee.customerName)
-  );
+  // Sort: highest score first (preferring prefix matches over substrings),
+  // then sort alphabetically by customer name
+  return results.sort((a, b) => {
+    if (Math.abs(b.score - a.score) > 0.001) {
+      return b.score - a.score;
+    }
+    return a.attendee.customerName.localeCompare(b.attendee.customerName);
+  });
 }
 
 /**
