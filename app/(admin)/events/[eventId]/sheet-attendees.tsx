@@ -50,6 +50,7 @@ export default function SheetAttendeesScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [letterFilter, setLetterFilter] = useState<string>('');  // '' = show all
 
   const [sheetLoading, setSheetLoading] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
@@ -140,12 +141,29 @@ export default function SheetAttendeesScreen() {
         checkin: checkinMap.get(attendee.rowKey) ?? null,
         score,
       }))
-      .filter(({ checkin }) => {
+      .filter(({ attendee, checkin }) => {
+        // Letter bar filter
+        if (letterFilter) {
+          const first = (attendee.customerName || '').trim()[0]?.toUpperCase() ?? '#';
+          const bucket = /^[A-Z]$/.test(first) ? first : '#';
+          if (bucket !== letterFilter) return false;
+        }
+        // Check-in status filter
         if (filterMode === 'checked-in')     return checkin !== null && !checkin.checkedOutAt;
         if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
         return true;
       });
-  }, [attendees, checkinMap, searchQuery, filterMode]);
+  }, [attendees, checkinMap, searchQuery, filterMode, letterFilter]);
+
+  // ── Letters that actually have attendees (for the bar) ────────────────────
+  const activeLetters = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of attendees) {
+      const first = (a.customerName || '').trim()[0]?.toUpperCase() ?? '';
+      set.add(/^[A-Z]$/.test(first) ? first : '#');
+    }
+    return set;
+  }, [attendees]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const totalCount     = attendees.length;
@@ -346,6 +364,51 @@ export default function SheetAttendeesScreen() {
 
       {/* ── Search + Filter bar ── */}
       <View style={styles.searchSection}>
+
+        {/* Letter bar */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.letterBarScroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* "All" pill */}
+          <TouchableOpacity
+            style={[styles.letterBtn, !letterFilter && styles.letterBtnActive]}
+            onPress={() => { setLetterFilter(''); setSearchQuery(''); }}
+          >
+            <Text style={[styles.letterBtnText, !letterFilter && styles.letterBtnTextActive]}>All</Text>
+          </TouchableOpacity>
+
+          {/* A–Z + # */}
+          {[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'].map((ch) => {
+            const isActive = letterFilter === ch;
+            const hasItems = activeLetters.has(ch);
+            return (
+              <TouchableOpacity
+                key={ch}
+                style={[
+                  styles.letterBtn,
+                  isActive && styles.letterBtnActive,
+                  !hasItems && styles.letterBtnEmpty,
+                ]}
+                onPress={() => {
+                  setLetterFilter(isActive ? '' : ch);
+                  setSearchQuery('');
+                }}
+                disabled={!hasItems}
+              >
+                <Text style={[
+                  styles.letterBtnText,
+                  isActive && styles.letterBtnTextActive,
+                  !hasItems && styles.letterBtnTextEmpty,
+                ]}>{ch}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Text search */}
         <View style={styles.searchBox}>
           <Ionicons name="search-outline" size={18} color="#9CA3AF" />
           <TextInput
@@ -354,7 +417,7 @@ export default function SheetAttendeesScreen() {
             placeholder="Search name, spouse, gotram, phone…"
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={(t) => { setSearchQuery(t); if (t) setLetterFilter(''); }}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -362,6 +425,8 @@ export default function SheetAttendeesScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Status filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           {(['all', 'not-checked-in', 'checked-in'] as FilterMode[]).map((mode) => {
             const labels = { all: 'All', 'not-checked-in': 'Not In', 'checked-in': 'Checked In' };
@@ -735,8 +800,8 @@ const styles = StyleSheet.create({
 
   // Search + filter
   searchSection: {
-    backgroundColor: '#FFF', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
-    borderBottomWidth: 1, borderBottomColor: '#E5E7EB', gap: 10,
+    backgroundColor: '#FFF', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8,
+    borderBottomWidth: 1, borderBottomColor: '#E5E7EB', gap: 8,
   },
   searchBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -751,6 +816,21 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: '#6D28D9', borderColor: '#6D28D9' },
   filterChipText: { fontSize: 13, fontWeight: '600', color: '#4B5563' },
   filterChipTextActive: { color: '#FFF' },
+
+  // Letter bar
+  letterBarScroll: { gap: 4, paddingVertical: 2 },
+  letterBtn: {
+    minWidth: 32, height: 32, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#F3F4F6', paddingHorizontal: 6,
+  },
+  letterBtnActive: { backgroundColor: '#6D28D9' },
+  letterBtnEmpty: { backgroundColor: '#F9FAFB', opacity: 0.4 },
+  letterBtnText: { fontSize: 12, fontWeight: '700', color: '#374151' },
+  letterBtnTextActive: { color: '#FFF' },
+  letterBtnTextEmpty: { color: '#9CA3AF' },
+
+
 
   // List
   listContent: { padding: 12, gap: 8 },
