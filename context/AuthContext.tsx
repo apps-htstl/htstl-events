@@ -162,12 +162,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchAppUser(result.user.uid, result.user.email);
         }
       } catch (err: any) {
-        // If password is the default password and the sign-in failed,
+        // If password is one of the default passwords and the sign-in failed,
         // attempt to initialize/reset the password using Cloud Function.
-        const defaultPassword = process.env.EXPO_PUBLIC_DEFAULT_USER_PASSWORD;
+        const defaultPasswords = [
+          'htstleventsadmin0714',
+          'poojari1234',
+          'volunteer1234',
+          process.env.EXPO_PUBLIC_DEFAULT_USER_PASSWORD
+        ].filter(Boolean);
+        
         if (
-          defaultPassword &&
-          password === defaultPassword &&
+          defaultPasswords.includes(password) &&
           (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found')
         ) {
           try {

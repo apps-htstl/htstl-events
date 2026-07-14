@@ -6,7 +6,6 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
-const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD;
 
 export const provisionUser = onCall(async (request) => {
   // 1. Must be authenticated
@@ -47,12 +46,18 @@ export const provisionUser = onCall(async (request) => {
     // Auth user exists — update password to default and update their Firestore profile role
     uid = existing.uid;
 
-    if (!DEFAULT_PASSWORD) {
-      throw new HttpsError('internal', 'Server configuration error: DEFAULT_USER_PASSWORD not set.');
+    // Determine expected password for this role
+    let roleDefaultPassword = 'volunteer1234'; // fallback
+    if (role === 'superadmin' || role === 'eventadmin') {
+      roleDefaultPassword = 'htstleventsadmin0714';
+    } else if (role === 'poojari') {
+      roleDefaultPassword = 'poojari1234';
+    } else if (role === 'volunteer') {
+      roleDefaultPassword = 'volunteer1234';
     }
 
     // Always reset password to default when an admin provisions/updates a user
-    await auth.updateUser(uid, { password: DEFAULT_PASSWORD });
+    await auth.updateUser(uid, { password: roleDefaultPassword });
     const userRef = db.collection('users').doc(uid);
     const firestoreSnap = await userRef.get();
 
@@ -95,17 +100,22 @@ export const provisionUser = onCall(async (request) => {
 
     // 5. No existing auth user — create one with the default password.
     //    The user can sign in with this password right away.
-    if (!DEFAULT_PASSWORD) {
-      throw new HttpsError('internal', 'Server configuration error: DEFAULT_USER_PASSWORD not set.');
+    // Determine expected password for this role
+    let roleDefaultPassword = 'volunteer1234'; // fallback
+    if (role === 'superadmin' || role === 'eventadmin') {
+      roleDefaultPassword = 'htstleventsadmin0714';
+    } else if (role === 'poojari') {
+      roleDefaultPassword = 'poojari1234';
+    } else if (role === 'volunteer') {
+      roleDefaultPassword = 'volunteer1234';
     }
-    const defaultPassword = DEFAULT_PASSWORD;
 
     let newUser;
     try {
       newUser = await auth.createUser({
         email: normalizedEmail,
         displayName: displayName.trim(),
-        password: defaultPassword,
+        password: roleDefaultPassword,
         emailVerified: false,
       });
     } catch (createErr: any) {
