@@ -26,11 +26,20 @@ const COL_ALIASES: Record<string, string[]> = {
 
 // ─── Text normalisation ──────────────────────────────────────────────────────
 
-/** Normalize a string: lowercase, collapse whitespace, strip punctuation. */
+/**
+ * Normalize text for search comparison.
+ * Replaces punctuation (including & . , - etc.) with a SPACE rather than
+ * stripping it, so tokens on either side stay separate.
+ * Examples:
+ *   "Ramesh & Sita"  → "ramesh   sita" → "ramesh sita"
+ *   "Ramesh&Sita"    → "ramesh sita"   (not "rameshsita")
+ *   "Sri.Kumar"      → "sri kumar"      (not "srikumar")
+ *   "K.S. Ramesh"    → "k s  ramesh"   → "k s ramesh"
+ */
 export function normalizeText(v: string): string {
   return (v || '')
     .toLowerCase()
-    .replace(/[^\w\s]/g, '')   // strip punctuation
+    .replace(/[^\w\s]/g, ' ')   // replace punctuation with space (not strip)
     .replace(/\s+/g, ' ')
     .trim();
 }

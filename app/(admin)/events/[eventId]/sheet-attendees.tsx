@@ -36,6 +36,22 @@ interface AttendeeRow {
   score: number;
 }
 
+/**
+ * Returns the first A-Z letter of a name, skipping any leading
+ * non-alphabetic characters (& . , - digits, honorifics like "Sri. ").
+ * Falls back to '#' for names that contain no letters at all.
+ *
+ * Examples:
+ *   "Ramesh Kumar"    → "R"
+ *   "& Sita Devi"     → "S"
+ *   "Sri. Venkat"     → "S"
+ *   "123 Test"        → "#"
+ */
+function firstAlpha(name: string): string {
+  const match = (name || '').match(/[A-Za-z]/);
+  return match ? match[0].toUpperCase() : '#';
+}
+
 export default function SheetAttendeesScreen() {
   const { appUser } = useAuth();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -155,8 +171,7 @@ export default function SheetAttendeesScreen() {
       .filter(({ attendee, checkin }) => {
         // Letter bar filter
         if (letterFilter) {
-          const first = (attendee.customerName || '').trim()[0]?.toUpperCase() ?? '#';
-          const bucket = /^[A-Z]$/.test(first) ? first : '#';
+          const bucket = firstAlpha(attendee.customerName);
           if (bucket !== letterFilter) return false;
         }
         // Check-in status filter
@@ -164,7 +179,7 @@ export default function SheetAttendeesScreen() {
         if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
         return true;
       })
-      // Always sort A–Z by name so letter-filtered lists are predictable
+      // Always sort A–Z by customer name
       .sort((a, b) =>
         a.attendee.customerName.localeCompare(b.attendee.customerName)
       );
@@ -173,10 +188,7 @@ export default function SheetAttendeesScreen() {
   // ── Letters that actually have attendees (for the bar) ────────────────────
   const activeLetters = useMemo(() => {
     const set = new Set<string>();
-    for (const a of attendees) {
-      const first = (a.customerName || '').trim()[0]?.toUpperCase() ?? '';
-      set.add(/^[A-Z]$/.test(first) ? first : '#');
-    }
+    for (const a of attendees) set.add(firstAlpha(a.customerName));
     return set;
   }, [attendees]);
 
