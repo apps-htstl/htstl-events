@@ -2,7 +2,7 @@
 // Attendee Registrations List — Search, filter, manual register modal, details view, and manual check-in.
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -42,12 +42,9 @@ export default function RegistrationsScreen() {
 
   const [event, setEvent] = useState<HTSLEvent | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  // inputValue  → TextInput display (immediate)
-  // searchQuery → debounced 250ms, drives filter computation
-  const [inputValue, setInputValue]   = useState('');
+  // searchQuery drives filter computation instantly on keypress
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('All');
-  const [, startTransition] = useTransition();
 
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -133,12 +130,6 @@ export default function RegistrationsScreen() {
       unsubUsers();
     };
   }, [appUser?.orgId, eventId]);
-
-  // ── Debounce inputValue → searchQuery ────────────────────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => setSearchQuery(inputValue), 250);
-    return () => clearTimeout(t);
-  }, [inputValue]);
 
 
   const getUserName = (uid: string) => {
@@ -279,7 +270,7 @@ export default function RegistrationsScreen() {
             <Text style={styles.regName} numberOfLines={1}>{item.customerName}</Text>
             {item.spouseName ? (
               <Text style={[styles.regName, { fontWeight: '400', color: '#6B7280' }]} numberOfLines={1}>
-                & {item.spouseName}
+                , {item.spouseName}
               </Text>
             ) : null}
             {nameKey && (
@@ -434,11 +425,11 @@ export default function RegistrationsScreen() {
             style={styles.searchInput}
             placeholder={sourceTab === 'firestore' ? 'Search name, email, phone…' : 'Search name, gotram, phone…'}
             placeholderTextColor="#9CA3AF"
-            value={inputValue}
-            onChangeText={setInputValue}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-          {inputValue.length > 0 && (
-            <TouchableOpacity onPress={() => { setInputValue(''); setSearchQuery(''); }}>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}

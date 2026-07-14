@@ -64,9 +64,7 @@ export default function SheetAttendeesScreen() {
   const [checkinMap, setCheckinMap] = useState<Map<string, SheetCheckin>>(new Map());
   const [users, setUsers] = useState<AppUser[]>([]);
 
-  // inputValue  → bound to TextInput directly (instant, never lags)
-  // searchQuery → debounced from inputValue (250 ms), drives the useMemo filter
-  const [inputValue, setInputValue]   = useState('');
+  // searchQuery drives the useMemo filter instantly on keypress
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode]   = useState<FilterMode>('all');
   const [letterFilter, setLetterFilter] = useState<string>('');
@@ -149,12 +147,6 @@ export default function SheetAttendeesScreen() {
     await fetchAttendees(event);
     setRefreshing(false);
   };
-
-  // ── Debounce: inputValue → searchQuery (250 ms) ───────────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => setSearchQuery(inputValue), 250);
-    return () => clearTimeout(t);
-  }, [inputValue]);
 
   // ── Computed list: search → letter filter → status filter → A-Z sort ────────
   // searchQuery is debounced so Levenshtein never runs on every keystroke.
@@ -302,7 +294,7 @@ export default function SheetAttendeesScreen() {
           <View style={styles.rowNameRow}>
             <Text style={styles.rowName} numberOfLines={1}>{attendee.customerName}</Text>
             {attendee.spouseName ? (
-              <Text style={styles.rowSpouse} numberOfLines={1}> & {attendee.spouseName}</Text>
+              <Text style={styles.rowSpouse} numberOfLines={1}> , {attendee.spouseName}</Text>
             ) : null}
             {nameKey && (
               <View style={styles.unstableBadge}>
@@ -421,7 +413,6 @@ export default function SheetAttendeesScreen() {
                 ]}
                 onPress={() => {
                   setLetterFilter(isActive ? '' : ch);
-                  setInputValue('');
                   setSearchQuery('');
                 }}
                 disabled={!hasItems}
@@ -444,14 +435,14 @@ export default function SheetAttendeesScreen() {
             style={styles.searchInput}
             placeholder="Search name, spouse, gotram, phone…"
             placeholderTextColor="#9CA3AF"
-            value={inputValue}
+            value={searchQuery}
             onChangeText={(t) => {
-              setInputValue(t);
+              setSearchQuery(t);
               if (t) setLetterFilter('');
             }}
           />
-          {inputValue.length > 0 && (
-            <TouchableOpacity onPress={() => { setInputValue(''); setSearchQuery(''); }}>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}
@@ -553,7 +544,7 @@ export default function SheetAttendeesScreen() {
               <View style={styles.modalCard}>
                 <Text style={styles.modalName}>{selectedRow.attendee.customerName}</Text>
                 {selectedRow.attendee.spouseName ? (
-                  <Text style={styles.modalSpouse}>& {selectedRow.attendee.spouseName}</Text>
+                  <Text style={styles.modalSpouse}>, {selectedRow.attendee.spouseName}</Text>
                 ) : null}
 
                 <View style={styles.detailList}>

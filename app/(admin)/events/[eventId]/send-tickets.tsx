@@ -462,7 +462,7 @@ export default function SendTicketsScreen() {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <Text style={styles.regName} numberOfLines={1}>{item.customerName}</Text>
                       {item.spouseName ? (
-                        <Text style={{ fontSize: 13, color: '#6B7280' }}>& {item.spouseName}</Text>
+                        <Text style={{ fontSize: 13, color: '#6B7280' }}>, {item.spouseName}</Text>
                       ) : null}
                       {!canDispatch && <Ionicons name="warning-outline" size={14} color="#B45309" />}
                     </View>
