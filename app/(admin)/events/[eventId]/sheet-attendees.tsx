@@ -14,7 +14,7 @@
 //   - Admin: configure / change the linked Google Sheet
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   TextInput, Modal, ScrollView, ActivityIndicator, Alert,
@@ -49,13 +49,11 @@ export default function SheetAttendeesScreen() {
   const [users, setUsers] = useState<AppUser[]>([]);
 
   // inputValue  → bound to TextInput directly (instant, never lags)
-  // searchQuery → debounced from inputValue (250 ms), drives the actual filter
+  // searchQuery → debounced from inputValue (250 ms), drives the useMemo filter
   const [inputValue, setInputValue]   = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode]   = useState<FilterMode>('all');
   const [letterFilter, setLetterFilter] = useState<string>('');
-  const [displayRows, setDisplayRows]   = useState<AttendeeRow[]>([]);
-  const [, startTransition]             = useTransition();
 
   const [sheetLoading, setSheetLoading] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
@@ -142,28 +140,34 @@ export default function SheetAttendeesScreen() {
     return () => clearTimeout(t);
   }, [inputValue]);
 
-  // ── Recompute displayRows whenever search/filter/data changes ─────────────
-  useEffect(() => {
-    startTransition(() => {
-      const searchResults = searchAttendees(attendees, searchQuery);
-      const rows = searchResults
-        .map(({ attendee, score }) => ({
-          attendee,
-          checkin: checkinMap.get(attendee.rowKey) ?? null,
-          score,
-        }))
-        .filter(({ attendee, checkin }) => {
-          if (letterFilter) {
-            const first = (attendee.customerName || '').trim()[0]?.toUpperCase() ?? '#';
-            const bucket = /^[A-Z]$/.test(first) ? first : '#';
-            if (bucket !== letterFilter) return false;
-          }
-          if (filterMode === 'checked-in')     return checkin !== null && !checkin.checkedOutAt;
-          if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
-          return true;
-        });
-      setDisplayRows(rows);
-    });
+  // ── Computed list: search → letter filter → status filter → A-Z sort ────────
+  // searchQuery is debounced so Levenshtein never runs on every keystroke.
+  // letterFilter and filterMode are instant (no debounce needed — they're O(n) simple filters).
+  const displayRows = useMemo<AttendeeRow[]>(() => {
+    const searched = searchAttendees(attendees, searchQuery);
+
+    return searched
+      .map(({ attendee, score }) => ({
+        attendee,
+        checkin: checkinMap.get(attendee.rowKey) ?? null,
+        score,
+      }))
+      .filter(({ attendee, checkin }) => {
+        // Letter bar filter
+        if (letterFilter) {
+          const first = (attendee.customerName || '').trim()[0]?.toUpperCase() ?? '#';
+          const bucket = /^[A-Z]$/.test(first) ? first : '#';
+          if (bucket !== letterFilter) return false;
+        }
+        // Check-in status filter
+        if (filterMode === 'checked-in')     return checkin !== null && !checkin.checkedOutAt;
+        if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
+        return true;
+      })
+      // Always sort A–Z by name so letter-filtered lists are predictable
+      .sort((a, b) =>
+        a.attendee.customerName.localeCompare(b.attendee.customerName)
+      );
   }, [attendees, checkinMap, searchQuery, filterMode, letterFilter]);
 
   // ── Letters that actually have attendees (for the bar) ────────────────────
