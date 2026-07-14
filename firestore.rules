@@ -108,6 +108,21 @@ service cloud.firestore {
           // from the client. (Cloud Functions use Admin SDK and bypass these rules.)
           allow update, delete: if false;
         }
+
+        // ── 2d. Sheet-based Attendee Check-ins ────────────────────────────────
+        // Stores lightweight check-in state for attendees sourced from a Google Sheet.
+        // The sheet remains the source of truth for WHO is registered.
+        // Only the operational check-in/check-out timestamps live here.
+        match /sheetCheckins/{rowKey} {
+          // Any org member (admin or volunteer) can read the check-in state.
+          allow read: if isAuthenticated() && isMemberOfOrg(orgId);
+
+          // Any org member can create or update a check-in (volunteers check people in).
+          allow create, update: if isAuthenticated() && isMemberOfOrg(orgId);
+
+          // Only admins can delete a check-in record (undo check-in).
+          allow delete: if isAdmin() && isMemberOfOrg(orgId);
+        }
       }
 
       // ── 2d. Seva Lists (Poojari feature) ─────────────────────────────────────

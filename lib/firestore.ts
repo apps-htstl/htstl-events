@@ -19,7 +19,7 @@ import {
   runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { HTSLEvent, Registration, AppUser, CheckInEntry, SevaList, SevaProgress } from './types';
+import { HTSLEvent, Registration, AppUser, CheckInEntry, SevaList, SevaProgress, SheetCheckin } from './types';
 
 // Helper to convert Firestore timestamp to JS Date
 const toDate = (timestamp: any): Date => {
@@ -44,6 +44,11 @@ const mapEventDoc = (docSnap: any): HTSLEvent => {
     sections: data.sections || [],
     createdBy: data.createdBy || '',
     createdAt: toDate(data.createdAt),
+    // Sheet linking (optional)
+    sheetUrl: data.sheetUrl || '',
+    sheetId: data.sheetId || '',
+    sheetEventColumn: data.sheetEventColumn || 'Event Name',
+    sheetEventFilter: data.sheetEventFilter || '',
   };
 };
 
@@ -382,3 +387,114 @@ export async function saveSevaProgress(
     lastUpdated: Timestamp.now(),
   });
 }
+
+/* ==========================================
+   SHEET-BASED ATTENDEE CHECK-IN
+   ==========================================
+   Firestore path: /orgs/{orgId}/events/{eventId}/sheetCheckins/{rowKey}
+   The sheet remains the source of truth for WHO is registered.
+   Only check-in/check-out state is stored here.
+   ========================================== */
+
+/** Link (or update) a Google Sheet to an event. */
+export async function updateEventSheet(
+  orgId: string,
+  eventId: string,
+  sheetUrl: string,
+  sheetId: string,
+  sheetEventFilter: string,
+  sheetEventColumn: string = 'Event Name',
+): Promise<void> {
+  const eventRef = doc(db, 'orgs', orgId, 'events', eventId);
+  await updateDoc(eventRef, { sheetUrl, sheetId, sheetEventFilter, sheetEventColumn });
+}
+
+/** Map a Firestore sheetCheckin doc to a SheetCheckin object. */
+const mapSheetCheckinDoc = (docSnap: any): SheetCheckin => {
+  const d = docSnap.data();
+  return {
+    rowKey:        docSnap.id,
+    attendeeName:  d.attendeeName  || '',
+    spouseName:    d.spouseName    || '',
+    gotram:        d.gotram        || '',
+    eventName:     d.eventName     || '',
+    phone:         d.phone         || '',
+    email:         d.email         || '',
+    checkedInAt:   toDate(d.checkedInAt),
+    checkedInBy:   d.checkedInBy   || '',
+    checkedOutAt:  d.checkedOutAt  ? toDate(d.checkedOutAt) : undefined,
+    checkedOutBy:  d.checkedOutBy  || undefined,
+    note:          d.note          || undefined,
+  };
+};
+
+/** Real-time subscription to all sheet check-ins for an event. */
+export function subscribeSheetCheckins(
+  orgId: string,
+  eventId: string,
+  callback: (checkins: SheetCheckin[]) => void,
+) {
+  const ref = collection(db, 'orgs', orgId, 'events', eventId, 'sheetCheckins');
+  return onSnapshot(ref, (snap) => {
+    callback(snap.docs.map(mapSheetCheckinDoc));
+  });
+}
+
+/** Record a check-in for a sheet attendee. Idempotent — safe to call again. */
+export async function writeSheetCheckin(
+  orgId: string,
+  eventId: string,
+  rowKey: string,
+  payload: {
+    attendeeName: string;
+    spouseName?: string;
+    gotram?: string;
+    eventName: string;
+    phone?: string;
+    email?: string;
+    volunteerId: string;
+    note?: string;
+  },
+): Promise<void> {
+  const ref = doc(db, 'orgs', orgId, 'events', eventId, 'sheetCheckins', rowKey);
+  await setDoc(ref, {
+    rowKey,
+    attendeeName:  payload.attendeeName,
+    spouseName:    payload.spouseName  || '',
+    gotram:        payload.gotram      || '',
+    eventName:     payload.eventName,
+    phone:         payload.phone       || '',
+    email:         payload.email       || '',
+    checkedInAt:   Timestamp.now(),
+    checkedInBy:   payload.volunteerId,
+    checkedOutAt:  null,
+    checkedOutBy:  null,
+    note:          payload.note        || '',
+  }, { merge: false }); // always overwrite to reset any previous checkout
+}
+
+/** Record a check-out for a sheet attendee. */
+export async function writeSheetCheckout(
+  orgId: string,
+  eventId: string,
+  rowKey: string,
+  volunteerId: string,
+): Promise<void> {
+  const ref = doc(db, 'orgs', orgId, 'events', eventId, 'sheetCheckins', rowKey);
+  await updateDoc(ref, {
+    checkedOutAt: Timestamp.now(),
+    checkedOutBy: volunteerId,
+  });
+}
+
+/** Undo a check-in (delete the document entirely). */
+export async function undoSheetCheckin(
+  orgId: string,
+  eventId: string,
+  rowKey: string,
+): Promise<void> {
+  const { deleteDoc } = await import('firebase/firestore');
+  const ref = doc(db, 'orgs', orgId, 'events', eventId, 'sheetCheckins', rowKey);
+  await deleteDoc(ref);
+}
+

@@ -17,13 +17,16 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { subscribeRegistrations } from '@/lib/firestore';
-import { Registration } from '@/lib/types';
+import { subscribeRegistrations, subscribeEvent } from '@/lib/firestore';
+import { fetchSheetAttendees } from '@/lib/sheetAttendees';
+import { Registration, SheetAttendee, HTSLEvent } from '@/lib/types';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 
 type FilterType = 'all' | 'unsent' | 'sent';
 type ChannelType = 'email' | 'sms' | 'both';
+type SourceTab = 'firestore' | 'sheet';
+
 
 export default function SendTicketsScreen() {
   const { appUser } = useAuth();
@@ -36,7 +39,14 @@ export default function SendTicketsScreen() {
   const [channel, setChannel] = useState<ChannelType>('email');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [sourceTab, setSourceTab] = useState<SourceTab>('firestore');
+
+  // Sheet attendees state
+  const [event, setEvent] = useState<HTSLEvent | null>(null);
+  const [sheetAttendees, setSheetAttendees] = useState<SheetAttendee[]>([]);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
   // Dispatch states
   const [isSending, setIsSending] = useState(false);
   const [dispatchResult, setDispatchResult] = useState<{
@@ -44,6 +54,7 @@ export default function SendTicketsScreen() {
     count: number;
     failed: number;
   } | null>(null);
+
 
   useEffect(() => {
     if (!appUser?.orgId || !eventId) return;
@@ -54,8 +65,25 @@ export default function SendTicketsScreen() {
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // Also subscribe to the event so we can read sheetId/sheetEventFilter
+    const unsubEvent = subscribeEvent(appUser.orgId, eventId, (ev) => {
+      setEvent(ev);
+      if (ev?.sheetId) {
+        setSheetLoading(true);
+        setSheetError(null);
+        fetchSheetAttendees(ev.sheetId, ev.sheetEventFilter || ev.name || null)
+          .then(setSheetAttendees)
+          .catch((e) => setSheetError(e?.message || 'Failed to load sheet'))
+          .finally(() => setSheetLoading(false));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubEvent();
+    };
   }, [appUser?.orgId, eventId]);
+
 
   // Apply filters and search query
   const filteredRegs = registrations.filter((reg) => {
@@ -333,51 +361,164 @@ export default function SendTicketsScreen() {
         </View>
       </View>
 
-      {/* Main List */}
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6D28D9" />
-        </View>
-      ) : filteredRegs.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="mail-unread-outline" size={72} color="#E5E7EB" />
-          <Text style={styles.emptyTitle}>No Attendees Found</Text>
-          <Text style={styles.emptyText}>
-            No registrations match the selected filter.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredRegs}
-          renderItem={renderAttendeeItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* Dispatch Trigger Bar */}
-      <View style={styles.footer}>
+      {/* Source tab toggle */}
+      <View style={styles.sourceTabBar}>
         <TouchableOpacity
-          style={[styles.dispatchBtn, selectedIds.size === 0 && styles.dispatchBtnDisabled]}
-          onPress={handleSendTickets}
-          disabled={selectedIds.size === 0 || isSending}
+          style={[styles.sourceTab, sourceTab === 'firestore' && styles.sourceTabActive]}
+          onPress={() => setSourceTab('firestore')}
         >
-          {isSending ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <>
-              <Ionicons name="send" size={18} color="#FFF" />
-              <Text style={styles.dispatchBtnText}>
-                Send Tickets ({selectedIds.size})
-              </Text>
-            </>
-          )}
+          <Ionicons name="people" size={15} color={sourceTab === 'firestore' ? '#4F46E5' : '#9CA3AF'} />
+          <Text style={[styles.sourceTabText, sourceTab === 'firestore' && styles.sourceTabTextActive]}>
+            Registered ({registrations.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sourceTab, sourceTab === 'sheet' && styles.sourceTabActive]}
+          onPress={() => setSourceTab('sheet')}
+        >
+          <Ionicons name="document-text" size={15} color={sourceTab === 'sheet' ? '#16A34A' : '#9CA3AF'} />
+          <Text style={[styles.sourceTabText, sourceTab === 'sheet' && { color: '#16A34A', borderBottomColor: '#16A34A' }]}>
+            Sheet ({sheetAttendees.length})
+          </Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── FIRESTORE TAB: QR dispatch list ── */}
+      {sourceTab === 'firestore' && (
+        isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#6D28D9" />
+          </View>
+        ) : filteredRegs.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="mail-unread-outline" size={72} color="#E5E7EB" />
+            <Text style={styles.emptyTitle}>No Attendees Found</Text>
+            <Text style={styles.emptyText}>
+              No registrations match the selected filter.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredRegs}
+            renderItem={renderAttendeeItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )
+      )}
+
+      {/* ── SHEET TAB: read-only contact overview ── */}
+      {sourceTab === 'sheet' && (
+        !event?.sheetId ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={64} color="#E5E7EB" />
+            <Text style={styles.emptyTitle}>No sheet linked</Text>
+            <Text style={styles.emptyText}>
+              Link a Google Sheet from the event dashboard → Sheet Lookup.
+            </Text>
+          </View>
+        ) : sheetLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#16A34A" />
+          </View>
+        ) : sheetError ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="cloud-offline-outline" size={64} color="#FCA5A5" />
+            <Text style={styles.emptyTitle}>Sheet load failed</Text>
+            <Text style={styles.emptyText}>{sheetError}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={sheetAttendees.filter(a =>
+              searchQuery
+                ? `${a.customerName} ${a.spouseName} ${a.gotram} ${a.phone} ${a.email}`.toLowerCase().includes(searchQuery.toLowerCase())
+                : true
+            )}
+            keyExtractor={(item) => item.rowKey}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View style={styles.sheetInfoBanner}>
+                <Ionicons name="information-circle-outline" size={16} color="#4F46E5" />
+                <Text style={styles.sheetInfoText}>
+                  Sheet attendees shown for reference. To dispatch QR tickets, add them as registered attendees. Rows marked ⚠ have no phone/email.
+                </Text>
+              </View>
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="people-outline" size={64} color="#E5E7EB" />
+                <Text style={styles.emptyTitle}>No attendees found</Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const hasEmail = !!item.email;
+              const hasPhone = !!item.phone;
+              const canDispatch = hasEmail || hasPhone;
+              return (
+                <View style={[styles.card, !canDispatch && styles.cardNoContact]}>
+                  <View style={styles.cardBody}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.regName} numberOfLines={1}>{item.customerName}</Text>
+                      {item.spouseName ? (
+                        <Text style={{ fontSize: 13, color: '#6B7280' }}>& {item.spouseName}</Text>
+                      ) : null}
+                      {!canDispatch && <Ionicons name="warning-outline" size={14} color="#B45309" />}
+                    </View>
+                    <Text style={styles.regContact}>
+                      {item.gotram ? `${item.gotram}  ` : ''}
+                      {hasPhone ? item.phone : 'No phone'} · {hasEmail ? item.email : 'No email'}
+                    </Text>
+                    <Text style={styles.regMeta}>
+                      {item.eventName} · {item.eventDate}
+                    </Text>
+                  </View>
+                  <View style={styles.cardStatusCol}>
+                    {canDispatch ? (
+                      <View style={styles.sentBadge}>
+                        <Ionicons name="checkmark-circle-outline" size={14} color="#059669" />
+                        <Text style={styles.sentText}>READY</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.unsentBadge}>
+                        <Ionicons name="warning-outline" size={14} color="#B45309" />
+                        <Text style={styles.unsentText}>NO CONTACT</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            }}
+          />
+        )
+      )}
+
+      {/* Dispatch Trigger Bar — only visible on firestore tab */}
+      {sourceTab === 'firestore' && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.dispatchBtn, selectedIds.size === 0 && styles.dispatchBtnDisabled]}
+            onPress={handleSendTickets}
+            disabled={selectedIds.size === 0 || isSending}
+          >
+            {isSending ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <>
+                <Ionicons name="send" size={18} color="#FFF" />
+                <Text style={styles.dispatchBtnText}>
+                  Send Tickets ({selectedIds.size})
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -638,5 +779,57 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+
+  // Source tab bar
+  sourceTabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sourceTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  sourceTabActive: {
+    borderBottomColor: '#4F46E5',
+  },
+  sourceTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  sourceTabTextActive: {
+    color: '#4F46E5',
+  },
+
+  // Sheet tab
+  sheetInfoBanner: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  sheetInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#3730A3',
+    lineHeight: 18,
+  },
+  cardNoContact: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
   },
 });

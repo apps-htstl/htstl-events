@@ -26,8 +26,13 @@ import {
   checkInAttendee,
   getEvent,
   subscribeOrgUsers,
+  subscribeSheetCheckins,
+  writeSheetCheckin,
+  undoSheetCheckin,
 } from '@/lib/firestore';
-import { HTSLEvent, Registration, AppUser } from '@/lib/types';
+import { fetchSheetAttendees, searchAttendees, isNameBasedKey } from '@/lib/sheetAttendees';
+import { HTSLEvent, Registration, AppUser, SheetAttendee, SheetCheckin } from '@/lib/types';
+
 
 export default function RegistrationsScreen() {
   const { appUser } = useAuth();
@@ -41,6 +46,16 @@ export default function RegistrationsScreen() {
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<AppUser[]>([]);
+
+  // Source tab: 'firestore' = existing registrations, 'sheet' = linked Google Sheet
+  const [sourceTab, setSourceTab] = useState<'firestore' | 'sheet'>('firestore');
+
+  // Sheet attendees state
+  const [sheetAttendees, setSheetAttendees] = useState<SheetAttendee[]>([]);
+  const [sheetCheckinMap, setSheetCheckinMap] = useState<Map<string, SheetCheckin>>(new Map());
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
 
   // Modals state
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -71,6 +86,15 @@ export default function RegistrationsScreen() {
       if (evt && evt.tiers.length > 0) {
         setSelectedTier(evt.tiers[0].name);
       }
+      // Fetch sheet attendees once event is loaded
+      if (evt?.sheetId) {
+        setSheetLoading(true);
+        setSheetError(null);
+        fetchSheetAttendees(evt.sheetId, evt.sheetEventFilter || evt.name || null)
+          .then(setSheetAttendees)
+          .catch((e) => setSheetError(e?.message || 'Failed to load sheet'))
+          .finally(() => setSheetLoading(false));
+      }
     });
 
     // Subscribe to Registrations
@@ -86,6 +110,13 @@ export default function RegistrationsScreen() {
       });
     });
 
+    // Subscribe to sheet check-ins (real-time)
+    const unsubSheetCheckins = subscribeSheetCheckins(appUser.orgId, eventId, (list) => {
+      const map = new Map<string, SheetCheckin>();
+      list.forEach((c) => map.set(c.rowKey, c));
+      setSheetCheckinMap(map);
+    });
+
     // Subscribe to Org Users to resolve checkin IDs
     const unsubUsers = subscribeOrgUsers(appUser.orgId, (fetchedUsers) => {
       setUsers(fetchedUsers);
@@ -93,9 +124,11 @@ export default function RegistrationsScreen() {
 
     return () => {
       unsubscribe();
+      unsubSheetCheckins();
       unsubUsers();
     };
   }, [appUser?.orgId, eventId]);
+
 
   const getUserName = (uid: string) => {
     const user = users.find((u) => u.uid === uid);
@@ -167,7 +200,7 @@ export default function RegistrationsScreen() {
     }
   };
 
-  // Filter logic
+  // Filter logic — Firestore registrations
   const filteredRegs = registrations.filter((reg) => {
     const searchString = `${reg.firstName} ${reg.lastName} ${reg.email} ${reg.phone}`.toLowerCase();
     const matchesSearch = searchString.includes(searchQuery.toLowerCase());
@@ -175,10 +208,103 @@ export default function RegistrationsScreen() {
     return matchesSearch && matchesTier;
   });
 
+  // Filter logic — Sheet attendees (fuzzy search via sheetAttendees lib)
+  const filteredSheetAttendees = searchAttendees(sheetAttendees, searchQuery)
+    .map(({ attendee }) => attendee);
+
   const getTierColor = (tierName: string) => {
     const t = event?.tiers.find((x) => x.name.toLowerCase() === tierName.toLowerCase());
     return t?.color || '#D1D5DB';
   };
+
+  // Sheet attendee quick check-in from the list row
+  const handleSheetQuickCheckIn = async (attendee: SheetAttendee) => {
+    if (!appUser?.orgId || !eventId || !appUser.uid) return;
+    const existing = sheetCheckinMap.get(attendee.rowKey);
+    if (existing && !existing.checkedOutAt) {
+      // Already checked in → undo
+      Alert.alert(
+        'Undo Check-in',
+        `Remove check-in for ${attendee.customerName}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Undo', style: 'destructive',
+            onPress: async () => {
+              try { await undoSheetCheckin(appUser.orgId!, eventId, attendee.rowKey); }
+              catch (e: any) { Alert.alert('Error', e?.message); }
+            },
+          },
+        ]
+      );
+    } else {
+      try {
+        await writeSheetCheckin(appUser.orgId, eventId, attendee.rowKey, {
+          attendeeName: attendee.customerName,
+          spouseName: attendee.spouseName,
+          gotram: attendee.gotram,
+          eventName: attendee.eventName,
+          phone: attendee.phone,
+          email: attendee.email,
+          volunteerId: appUser.uid,
+        });
+      } catch (e: any) { Alert.alert('Error', e?.message); }
+    }
+  };
+
+  const renderSheetAttendeeItem = ({ item }: { item: SheetAttendee }) => {
+    const checkin = sheetCheckinMap.get(item.rowKey);
+    const isIn = checkin != null && !checkin.checkedOutAt;
+    const nameKey = isNameBasedKey(item.rowKey);
+
+    return (
+      <TouchableOpacity
+        style={[styles.regCard, isIn && styles.regCardCheckedIn]}
+        onPress={() => handleSheetQuickCheckIn(item)}
+        activeOpacity={0.75}
+      >
+        <View style={styles.cardMain}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.regName} numberOfLines={1}>{item.customerName}</Text>
+            {item.spouseName ? (
+              <Text style={[styles.regName, { fontWeight: '400', color: '#6B7280' }]} numberOfLines={1}>
+                & {item.spouseName}
+              </Text>
+            ) : null}
+            {nameKey && (
+              <Ionicons name="warning-outline" size={13} color="#B45309" />
+            )}
+          </View>
+          <View style={[styles.tierTag, { backgroundColor: '#F0FDF415' }]}>
+            <Text style={[styles.tierTagText, { color: '#16A34A' }]}>Sheet</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardSub}>
+          <Text style={styles.contactText} numberOfLines={1}>
+            {item.gotram ? `${item.gotram}` : 'No gotram'}
+            {item.phone ? ` · ${item.phone}` : ''}
+          </Text>
+          <View style={styles.checkinStatusRow}>
+            {isIn ? (
+              <View style={[styles.statusIndicator, styles.indicatorAll]}>
+                <Ionicons name="checkmark-done" size={14} color="#065F46" />
+                <Text style={styles.statusTextAll}>Checked In</Text>
+              </View>
+            ) : (
+              <View style={[styles.statusIndicator, styles.indicatorNone]}>
+                <Ionicons name="ellipse-outline" size={14} color="#4B5563" />
+                <Text style={styles.statusTextNone}>Tap to Check In</Text>
+              </View>
+            )}
+            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+
 
   const renderAttendeeItem = ({ item }: { item: Registration }) => {
     const color = getTierColor(item.tier);
@@ -248,16 +374,44 @@ export default function RegistrationsScreen() {
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Attendee List</Text>
+        {sourceTab === 'firestore' && (
+          <TouchableOpacity
+            onPress={() => {
+              if (event && event.tiers.length > 0) {
+                setSelectedTier(event.tiers[0].name);
+              }
+              setAddModalVisible(true);
+            }}
+            style={styles.addBtn}
+          >
+            <Ionicons name="person-add" size={20} color="#6D28D9" />
+          </TouchableOpacity>
+        )}
+        {sourceTab === 'sheet' && <View style={{ width: 40 }} />}
+      </View>
+
+      {/* Source tab toggle */}
+      <View style={styles.sourceTabBar}>
         <TouchableOpacity
-          onPress={() => {
-            if (event && event.tiers.length > 0) {
-              setSelectedTier(event.tiers[0].name);
-            }
-            setAddModalVisible(true);
-          }}
-          style={styles.addBtn}
+          style={[styles.sourceTab, sourceTab === 'firestore' && styles.sourceTabActive]}
+          onPress={() => setSourceTab('firestore')}
         >
-          <Ionicons name="person-add" size={20} color="#6D28D9" />
+          <Ionicons name="people" size={15} color={sourceTab === 'firestore' ? '#4F46E5' : '#9CA3AF'} />
+          <Text style={[styles.sourceTabText, sourceTab === 'firestore' && styles.sourceTabTextActive]}>
+            Registered ({registrations.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sourceTab, sourceTab === 'sheet' && styles.sourceTabActive]}
+          onPress={() => setSourceTab('sheet')}
+        >
+          <Ionicons name="document-text" size={15} color={sourceTab === 'sheet' ? '#16A34A' : '#9CA3AF'} />
+          <Text style={[styles.sourceTabText, sourceTab === 'sheet' && styles.sourceTabTextActive, sourceTab === 'sheet' && { color: '#16A34A' }]}>
+            Sheet ({sheetAttendees.length})
+          </Text>
+          {!event?.sheetId && (
+            <View style={styles.noSheetDot} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -267,68 +421,110 @@ export default function RegistrationsScreen() {
           <Ionicons name="search-outline" size={18} color="#9CA3AF" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search name, email, phone..."
+            placeholder={sourceTab === 'firestore' ? 'Search name, email, phone…' : 'Search name, gotram, phone…'}
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Tier filter scrollbar */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tierFilterScroll}
-        >
-          {['All', ...(event?.tiers.map((t) => t.name) || [])].map((tierName) => {
-            const isSelected = selectedTierFilter === tierName;
-            return (
-              <TouchableOpacity
-                key={tierName}
-                style={[
-                  styles.filterChip,
-                  isSelected && styles.filterChipSelected,
-                ]}
-                onPress={() => setSelectedTierFilter(tierName)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isSelected && styles.filterChipTextSelected,
-                  ]}
+        {/* Tier filter — only for Firestore tab */}
+        {sourceTab === 'firestore' && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tierFilterScroll}
+          >
+            {['All', ...(event?.tiers.map((t) => t.name) || [])].map((tierName) => {
+              const isSelected = selectedTierFilter === tierName;
+              return (
+                <TouchableOpacity
+                  key={tierName}
+                  style={[styles.filterChip, isSelected && styles.filterChipSelected]}
+                  onPress={() => setSelectedTierFilter(tierName)}
                 >
-                  {tierName}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                  <Text style={[styles.filterChipText, isSelected && styles.filterChipTextSelected]}>
+                    {tierName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
-      {/* Main List */}
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6D28D9" />
-        </View>
-      ) : filteredRegs.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="people-outline" size={72} color="#E5E7EB" />
-          <Text style={styles.emptyTitle}>No Attendees Found</Text>
-          <Text style={styles.emptyText}>
-            {searchQuery || selectedTierFilter !== 'All'
-              ? 'No registrants match your search/filter.'
-              : 'Add an attendee manually or import from a CSV file.'}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredRegs}
-          renderItem={renderAttendeeItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+      {/* ── FIRESTORE TAB ── */}
+      {sourceTab === 'firestore' && (
+        isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#6D28D9" />
+          </View>
+        ) : filteredRegs.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="people-outline" size={72} color="#E5E7EB" />
+            <Text style={styles.emptyTitle}>No Attendees Found</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery || selectedTierFilter !== 'All'
+                ? 'No registrants match your search/filter.'
+                : 'Add an attendee manually or import from a CSV file.'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredRegs}
+            renderItem={renderAttendeeItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       )}
+
+      {/* ── SHEET TAB ── */}
+      {sourceTab === 'sheet' && (
+        !event?.sheetId ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={64} color="#E5E7EB" />
+            <Text style={styles.emptyTitle}>No sheet linked</Text>
+            <Text style={styles.emptyText}>
+              Go to Sheet Lookup in the event dashboard to link a Google Sheet.
+            </Text>
+          </View>
+        ) : sheetLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color="#16A34A" />
+          </View>
+        ) : sheetError ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="cloud-offline-outline" size={64} color="#FCA5A5" />
+            <Text style={styles.emptyTitle}>Sheet load failed</Text>
+            <Text style={styles.emptyText}>{sheetError}</Text>
+          </View>
+        ) : filteredSheetAttendees.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="people-outline" size={72} color="#E5E7EB" />
+            <Text style={styles.emptyTitle}>No attendees found</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'No one matches your search. Try a different spelling.' : 'The linked sheet has no rows for this event.'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredSheetAttendees}
+            renderItem={renderSheetAttendeeItem}
+            keyExtractor={(item) => item.rowKey}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )
+      )}
+
+
 
       {/* DETAIL & CHECK-IN MODAL */}
       <Modal
@@ -680,6 +876,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Source tab bar
+  sourceTabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  sourceTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  sourceTabActive: {
+    borderBottomColor: '#4F46E5',
+  },
+  sourceTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  sourceTabTextActive: {
+    color: '#4F46E5',
+  },
+  noSheetDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
+    marginLeft: 2,
+  },
+
   regCard: {
     backgroundColor: '#FFF',
     borderWidth: 1,
@@ -687,6 +920,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
   },
+  regCardCheckedIn: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+
   cardMain: {
     flexDirection: 'row',
     justifyContent: 'space-between',
