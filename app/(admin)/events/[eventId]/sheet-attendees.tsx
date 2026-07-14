@@ -14,7 +14,7 @@
 //   - Admin: configure / change the linked Google Sheet
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
   TextInput, Modal, ScrollView, ActivityIndicator, Alert,
@@ -48,9 +48,14 @@ export default function SheetAttendeesScreen() {
   const [checkinMap, setCheckinMap] = useState<Map<string, SheetCheckin>>(new Map());
   const [users, setUsers] = useState<AppUser[]>([]);
 
+  // inputValue  → bound to TextInput directly (instant, never lags)
+  // searchQuery → debounced from inputValue (250 ms), drives the actual filter
+  const [inputValue, setInputValue]   = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const [letterFilter, setLetterFilter] = useState<string>('');  // '' = show all
+  const [filterMode, setFilterMode]   = useState<FilterMode>('all');
+  const [letterFilter, setLetterFilter] = useState<string>('');
+  const [displayRows, setDisplayRows]   = useState<AttendeeRow[]>([]);
+  const [, startTransition]             = useTransition();
 
   const [sheetLoading, setSheetLoading] = useState(false);
   const [sheetError, setSheetError] = useState<string | null>(null);
@@ -131,28 +136,34 @@ export default function SheetAttendeesScreen() {
     setRefreshing(false);
   };
 
-  // ── Merge + search + filter ────────────────────────────────────────────────
-  const displayRows = useMemo<AttendeeRow[]>(() => {
-    const searchResults = searchAttendees(attendees, searchQuery);
+  // ── Debounce: inputValue → searchQuery (250 ms) ───────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(inputValue), 250);
+    return () => clearTimeout(t);
+  }, [inputValue]);
 
-    return searchResults
-      .map(({ attendee, score }) => ({
-        attendee,
-        checkin: checkinMap.get(attendee.rowKey) ?? null,
-        score,
-      }))
-      .filter(({ attendee, checkin }) => {
-        // Letter bar filter
-        if (letterFilter) {
-          const first = (attendee.customerName || '').trim()[0]?.toUpperCase() ?? '#';
-          const bucket = /^[A-Z]$/.test(first) ? first : '#';
-          if (bucket !== letterFilter) return false;
-        }
-        // Check-in status filter
-        if (filterMode === 'checked-in')     return checkin !== null && !checkin.checkedOutAt;
-        if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
-        return true;
-      });
+  // ── Recompute displayRows whenever search/filter/data changes ─────────────
+  useEffect(() => {
+    startTransition(() => {
+      const searchResults = searchAttendees(attendees, searchQuery);
+      const rows = searchResults
+        .map(({ attendee, score }) => ({
+          attendee,
+          checkin: checkinMap.get(attendee.rowKey) ?? null,
+          score,
+        }))
+        .filter(({ attendee, checkin }) => {
+          if (letterFilter) {
+            const first = (attendee.customerName || '').trim()[0]?.toUpperCase() ?? '#';
+            const bucket = /^[A-Z]$/.test(first) ? first : '#';
+            if (bucket !== letterFilter) return false;
+          }
+          if (filterMode === 'checked-in')     return checkin !== null && !checkin.checkedOutAt;
+          if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
+          return true;
+        });
+      setDisplayRows(rows);
+    });
   }, [attendees, checkinMap, searchQuery, filterMode, letterFilter]);
 
   // ── Letters that actually have attendees (for the bar) ────────────────────
@@ -394,6 +405,7 @@ export default function SheetAttendeesScreen() {
                 ]}
                 onPress={() => {
                   setLetterFilter(isActive ? '' : ch);
+                  setInputValue('');
                   setSearchQuery('');
                 }}
                 disabled={!hasItems}
@@ -416,11 +428,14 @@ export default function SheetAttendeesScreen() {
             style={styles.searchInput}
             placeholder="Search name, spouse, gotram, phone…"
             placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={(t) => { setSearchQuery(t); if (t) setLetterFilter(''); }}
+            value={inputValue}
+            onChangeText={(t) => {
+              setInputValue(t);
+              if (t) setLetterFilter('');
+            }}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+          {inputValue.length > 0 && (
+            <TouchableOpacity onPress={() => { setInputValue(''); setSearchQuery(''); }}>
               <Ionicons name="close-circle" size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}

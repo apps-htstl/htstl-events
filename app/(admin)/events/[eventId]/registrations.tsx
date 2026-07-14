@@ -2,7 +2,7 @@
 // Attendee Registrations List — Search, filter, manual register modal, details view, and manual check-in.
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useTransition } from 'react';
 import {
   View,
   Text,
@@ -42,8 +42,13 @@ export default function RegistrationsScreen() {
 
   const [event, setEvent] = useState<HTSLEvent | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  // inputValue  → TextInput display (immediate)
+  // searchQuery → debounced 250ms, drives filter computation
+  const [inputValue, setInputValue]   = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('All');
+  const [, startTransition] = useTransition();
+
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<AppUser[]>([]);
 
@@ -129,6 +134,12 @@ export default function RegistrationsScreen() {
     };
   }, [appUser?.orgId, eventId]);
 
+  // ── Debounce inputValue → searchQuery ────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(inputValue), 250);
+    return () => clearTimeout(t);
+  }, [inputValue]);
+
 
   const getUserName = (uid: string) => {
     const user = users.find((u) => u.uid === uid);
@@ -200,15 +211,15 @@ export default function RegistrationsScreen() {
     }
   };
 
-  // Filter logic — Firestore registrations
+  // Filter logic — Firestore registrations (simple substring, fast)
   const filteredRegs = registrations.filter((reg) => {
     const searchString = `${reg.firstName} ${reg.lastName} ${reg.email} ${reg.phone}`.toLowerCase();
-    const matchesSearch = searchString.includes(searchQuery.toLowerCase());
+    const matchesSearch = !searchQuery || searchString.includes(searchQuery.toLowerCase());
     const matchesTier = selectedTierFilter === 'All' || reg.tier.toLowerCase() === selectedTierFilter.toLowerCase();
     return matchesSearch && matchesTier;
   });
 
-  // Filter logic — Sheet attendees (fuzzy search via sheetAttendees lib)
+  // Filter logic — Sheet attendees (cross-field token search)
   const filteredSheetAttendees = searchAttendees(sheetAttendees, searchQuery)
     .map(({ attendee }) => attendee);
 
@@ -423,11 +434,11 @@ export default function RegistrationsScreen() {
             style={styles.searchInput}
             placeholder={sourceTab === 'firestore' ? 'Search name, email, phone…' : 'Search name, gotram, phone…'}
             placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={inputValue}
+            onChangeText={setInputValue}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+          {inputValue.length > 0 && (
+            <TouchableOpacity onPress={() => { setInputValue(''); setSearchQuery(''); }}>
               <Ionicons name="close-circle" size={18} color="#9CA3AF" />
             </TouchableOpacity>
           )}
