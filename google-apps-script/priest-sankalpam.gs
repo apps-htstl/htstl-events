@@ -23,7 +23,7 @@ var SOURCES = [
   {
     key: "sponsors",
     docId: "1S6sltxHgDGPPnRl35zeHUAvjCT2SOLVMM2JMUM_Ngh4",
-    gid: "0",
+    gid: "1735789377",
   },
 ];
 

@@ -105,6 +105,16 @@ const normalizeEventName = (value: string) =>
 const eventNamesMatch = (left: string, right: string) =>
   normalizeEventName(left) === normalizeEventName(right);
 
+// Apps Script's `clean` helper collapses whitespace before completion keys are
+// returned. Build UI keys the same way so non-breaking or repeated spaces in a
+// Firestore event name cannot make an already-completed sponsor appear again.
+const completionEventKey = (eventName: string, eventDate: string) =>
+  `${String(eventName ?? "")
+    .replace(/[\u00a0\u2007\u202f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase()}|${String(eventDate ?? "").trim().toLowerCase()}`;
+
 type SankalpamRecord = {
   id: string;
   personKey: string;
@@ -294,7 +304,7 @@ export default function PriestViewScreen() {
             ...r,
             completedEventKeys: [
               ...r.completedEventKeys,
-              `${eventName.trim().toLowerCase()}|${eventDate.toLowerCase()}`,
+              completionEventKey(eventName, eventDate),
             ],
           };
         }),
@@ -428,7 +438,7 @@ export default function PriestViewScreen() {
     () =>
       sponsors.filter((s) => {
         if (dateFilter === ALL || sevaFilter === ALL) return true;
-        const selectedKey = `${sevaFilter.trim().toLowerCase()}|${dateFilter.toLowerCase()}`;
+        const selectedKey = completionEventKey(sevaFilter, dateFilter);
         return !s.completedEventKeys.includes(selectedKey);
       }),
     [sponsors, dateFilter, sevaFilter],
