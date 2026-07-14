@@ -171,10 +171,12 @@ export default function SheetAttendeesScreen() {
         if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
         return true;
       })
-      // Always sort A–Z by customer name
-      .sort((a, b) =>
-        a.attendee.customerName.localeCompare(b.attendee.customerName)
-      );
+      // Always sort A–Z by customer name safely
+      .sort((a, b) => {
+        const nameA = a.attendee.customerName || '';
+        const nameB = b.attendee.customerName || '';
+        return nameA.localeCompare(nameB);
+      });
   }, [attendees, checkinMap, searchQuery, filterMode, letterFilter]);
 
   // ── Letters that actually have attendees (for the bar) ────────────────────

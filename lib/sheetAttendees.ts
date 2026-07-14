@@ -278,13 +278,13 @@ export function searchAttendees(attendees: SheetAttendee[], query: string): Sear
     }
   }
 
-  // Sort: highest score first (preferring prefix matches over substrings),
-  // then sort alphabetically by customer name
   return results.sort((a, b) => {
     if (Math.abs(b.score - a.score) > 0.001) {
       return b.score - a.score;
     }
-    return a.attendee.customerName.localeCompare(b.attendee.customerName);
+    const nameA = a.attendee.customerName || '';
+    const nameB = b.attendee.customerName || '';
+    return nameA.localeCompare(nameB);
   });
 }
 
