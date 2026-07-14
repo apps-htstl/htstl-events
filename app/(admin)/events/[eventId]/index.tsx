@@ -387,6 +387,18 @@ export default function EventDashboardScreen() {
             <Text style={styles.gridSub}>{registrations.length} profiles</Text>
           </TouchableOpacity>
 
+          {/* Sheet Attendees */}
+          <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => router.push(`/(admin)/events/${eventId}/sheet-attendees`)}
+          >
+            <View style={[styles.gridIconBg, { backgroundColor: '#F0FDF4' }]}>
+              <Ionicons name="document-text" size={24} color="#16A34A" />
+            </View>
+            <Text style={styles.gridLabel}>Sheet Lookup</Text>
+            <Text style={styles.gridSub}>{event.sheetId ? 'Sheet linked ✓' : 'No sheet linked'}</Text>
+          </TouchableOpacity>
+
           {/* CSV Import */}
           <TouchableOpacity
             style={styles.gridItem}

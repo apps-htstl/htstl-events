@@ -43,6 +43,11 @@ export interface HTSLEvent {
   sections: Section[];
   createdBy: string;
   createdAt: Date;
+  // Linked Google Sheet for sheet-based attendee lookup
+  sheetUrl?: string;    // Full Google Sheets URL pasted by admin
+  sheetId?: string;     // Extracted spreadsheet ID
+  sheetEventColumn?: string; // Column header to filter rows by event name (default 'Event Name')
+  sheetEventFilter?: string; // The value to match in the event column (default = event.name)
 }
 
 export type QRChannel = 'email' | 'sms';
@@ -135,4 +140,44 @@ export interface SevaProgress {
   poojariUid: string;
   seenRowKeys: string[];
   lastUpdated: Date;
+}
+
+// ── Sheet-Based Attendee Check-in ─────────────────────────────────────────────
+
+/**
+ * A single row parsed from the event's linked Google Sheet CSV.
+ * Represents one person registered for a specific puja/event session.
+ * Columns: Customer Name | Spouse Name | Gotram | Event Name | Event Date | Event Time | Phone Number | Email
+ */
+export interface SheetAttendee {
+  rowKey: string;        // Deterministic fingerprint — stable across sheet edits
+  customerName: string;  // "Customer Name" column
+  spouseName: string;    // "Spouse Name" column
+  gotram: string;        // "Gotram" column
+  eventName: string;     // "Event Name" column
+  eventDate: string;     // "Event Date" column (raw string, e.g. "07/14/2026")
+  eventTime: string;     // "Event Time" column
+  phone: string;         // "Phone Number" column (may be empty)
+  email: string;         // "Email" column (may be empty)
+}
+
+/**
+ * Stored in Firestore ONLY when an attendee is checked in.
+ * Path: /orgs/{orgId}/events/{eventId}/sheetCheckins/{rowKey}
+ * The sheet remains the source of truth for who is registered.
+ * This document is the lightweight operational state layer.
+ */
+export interface SheetCheckin {
+  rowKey: string;
+  attendeeName: string;   // denormalized Customer Name for display & audit
+  spouseName?: string;
+  gotram?: string;
+  eventName: string;
+  phone?: string;
+  email?: string;
+  checkedInAt: Date;
+  checkedInBy: string;    // volunteer uid
+  checkedOutAt?: Date;
+  checkedOutBy?: string;
+  note?: string;
 }
