@@ -173,11 +173,11 @@ function Dropdown({
             style={[
               { maxHeight: 340 },
               Platform.OS === "web" &&
-                ({
-                  overflowY: "scroll",
-                  overscrollBehavior: "contain",
-                  touchAction: "pan-y",
-                } as any),
+              ({
+                overflowY: "scroll",
+                overscrollBehavior: "contain",
+                touchAction: "pan-y",
+              } as any),
             ]}
             contentContainerStyle={
               Platform.OS === "web"
@@ -189,8 +189,8 @@ function Dropdown({
             keyboardShouldPersistTaps="always"
             {...(Platform.OS === "web"
               ? ({
-                  onWheel: (event: any) => event.stopPropagation(),
-                } as any)
+                onWheel: (event: any) => event.stopPropagation(),
+              } as any)
               : {})}
           >
             {options.map((o) => (
@@ -525,7 +525,7 @@ export default function PriestViewScreen() {
             {syncing ? (
               <ActivityIndicator size="small" color={colors.dark.bg} />
             ) : (
-              <Text style={gsDark.btnGoldText}>⟳ Sync from Drive</Text>
+              <Text style={gsDark.btnGoldText}>⟳ Refresh Details</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -603,7 +603,7 @@ export default function PriestViewScreen() {
                   {syncing ? (
                     <ActivityIndicator size="small" color={colors.dark.bg} />
                   ) : (
-                    <Text style={gsDark.btnGoldText}>⟳ Sync from Drive</Text>
+                    <Text style={gsDark.btnGoldText}>⟳ Refresh Details</Text>
                   )}
                 </TouchableOpacity>
               </View>

@@ -1,0 +1,65 @@
+# Events List
+
+Total Events: 59
+
+| # | Event Name | ID | Status | Venue | Date |
+|---|---|---|---|---|---|
+| 1 | **Mahanyasam** | `01zG9pIJWBnq5OUNpoeH` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-16T13:30:00Z |
+| 2 | **Mahanyasam** | `02naYBrRblEsz8zNVWFF` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T13:30:00Z |
+| 3 | **Upahomams & Poornahuti (final offering)** | `1kKni1xfxIHhG4EBOVcn` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-19T16:30:00Z |
+| 4 | **Rudhra Homam** | `1z7Q6yBUW9WLueEIS6nv` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-16T14:00:00Z |
+| 5 | **Ganapati Puja** | `2WfPGsP7dWzS9G1wfBdq` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-14T22:00:00Z |
+| 6 | **Theertha Prasadam** | `4DV10qHBtEfHfFn4vXrZ` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-20T01:30:00Z |
+| 7 | **Samuhika Rudrabhishekam** | `5YGp937FlTF8btcYgwz4` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-18T23:30:00Z |
+| 8 | **Gomatha Puja** | `5o9taFO1pkHLkm1WzvC9` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T13:00:00Z |
+| 9 | **Gomatha Puja** | `5wtMdluWbfj4t5x5Gpy1` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-18T13:00:00Z |
+| 10 | **Mahanyasam** | `6Uca6NFKKK1awETYVYwi` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-15T13:30:00Z |
+| 11 | **Vigneshwara Puja** | `7AshlzNqxq6MooGoB0FX` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T14:00:00Z |
+| 12 | **Varaahi Homam** | `7ONLCZX6JqnV3g48IqxD` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-16T00:30:00Z |
+| 13 | **Chandi Homam** | `90m4ue4SNIdISM7HneHT` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-18T20:00:00Z |
+| 14 | **Mahanyasa Parayanam** | `Da9Pox7WaFuXVXlFr6nF` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-18T14:00:00Z |
+| 15 | **Deeksha Dharana** | `EIag0TeMbhAZRSPDbhmr` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T15:00:00Z |
+| 16 | **Rudhra Homam** | `EyJkEw05co7II16Ju9UR` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-15T14:00:00Z |
+| 17 | **Agni Mathanam (sacred fire generation)** | `GIqaBaTPkw6hApUzKG4U` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-15T00:00:00Z |
+| 18 | **Mahanyasa Parayanam** | `H9PUMyZ7pIOvFdvXcFhp` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T14:00:00Z |
+| 19 | **Chandi Homam** | `JgOdIPzH2rj15IFZ7Dh2` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T20:00:00Z |
+| 20 | **Theertha Prasadam** | `K1PE1Dvn5MFNq27ArhxX` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-17T01:30:00Z |
+| 21 | **Kalasha Udvasana & Abhishekam to Lord Shiva** | `KgpHpsxW8HzU3Hxj948d` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-19T17:00:00Z |
+| 22 | **Theertha Prasadam** | `LSOBhEvIcmw50Xw7eq38` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-18T18:00:00Z |
+| 23 | **Dwaja Arohanam & Shodasha Stambha Puja** | `OTVb2HjjBJF3z7yDVDBc` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-14T23:30:00Z |
+| 24 | **Nakshatra, Navagraha & Mrityunjaya Homam** | `Ps41fOEDBDjIDzbQ4xIm` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-18T16:30:00Z |
+| 25 | **Gomatha & Mahanyasam Parayanam** | `R5vyGdd3iy4VPg9SYkjJ` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-19T13:00:00Z |
+| 26 | **Gomatha Puja** | `RnPPBj4nXaYIIlUbAQ3y` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-17T13:00:00Z |
+| 27 | **Gopuja Followed by Panchakshari 108 times** | `S7362z7wFirCTOazFqJ4` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-15T13:00:00Z |
+| 28 | **Kalyana Mahotsavam** | `S7ANU1BzDnhJRXbfMHSY` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-19T22:00:00Z |
+| 29 | **Rajashyamala Homam** | `To0fsqmM9HLQ5H6RjN8x` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T00:30:00Z |
+| 30 | **Theertha Prasadam** | `U9qUivmhCXNqChJ4dVG2` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-17T18:00:00Z |
+| 31 | **Theertha Prasadam** | `UHdKvG59QcZgMx6uKzCD` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-15T17:30:00Z |
+| 32 | **Chandi Homam** | `UopvB0pMQqANFVKTgvfY` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-15T22:00:00Z |
+| 33 | **Samuhika Kumkum Archana** | `WBKPjuvhawCnOijGnJQj` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T23:00:00Z |
+| 34 | **Theertha Prasadam** | `X4odnl4bzJ5RB4WzzBlZ` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-16T01:30:00Z |
+| 35 | **Punyahavachanam & Parishad Prayaschitta** | `YW2GBYYu7OzfhIPDwJIx` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T14:30:00Z |
+| 36 | **Mantrapushpam Followed by Prasadam** | `a8Fi236WgoiDUfg0xWG4` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T16:00:00Z |
+| 37 | **Procession of puja materials and deities into Yagashala** | `aAh37WB8k9bhq579lBXe` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-14T21:30:00Z |
+| 38 | **Prathyangira Homam** | `e2C5eHSrkCv2DvpSlYte` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T22:30:00Z |
+| 39 | **Panjagavya Prashanam** | `fY7oKrLVhUlInb4kRa5W` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-14T15:30:00Z |
+| 40 | **Rudra Homam** | `hAbG0RTFxCO1Bwe4A1Z9` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-19T13:30:00Z |
+| 41 | **Gomatha Puja** | `j6RNlD4y0dIK5X3FJoSd` | ACTIVE | Hindu Temple of St. Louis - Temple | 2026-07-16T13:00:00Z |
+| 42 | **Theertha Prasadam** | `jTRJdIxWf2c7I4s9zm9P` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-16T17:00:00Z |
+| 43 | **Mahanyasa Parayanam** | `kDbkJr9cZDpXaKCHhOYE` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-19T13:15:00Z |
+| 44 | **Panditha Sathkaram** | `l53v4qPJ0ULIPDqsAaQG` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-20T01:00:00Z |
+| 45 | **Avabhruta Snanam for Deeksha holder & Theertha Prasadam** | `lFmRogK77igSF1q9WcFf` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-19T18:00:00Z |
+| 46 | **Akhanda Deepa Aradhana** | `m6r4szhlIUyB0mKZAUjH` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-14T23:00:00Z |
+| 47 | **Rudra Homam** | `ofMIG0v6SDqoxMQ6Mtpl` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-18T15:00:00Z |
+| 48 | **Chandi Homam** | `pPJKioi2Xs8oWuKi94wa` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-16T22:00:00Z |
+| 49 | **Vastu Ganapati Homam** | `qu9pQmiPj9hthXIXrajK` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-15T00:30:00Z |
+| 50 | **Rudra Homam** | `rZyqn26VoUJRue8ttSiq` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T15:00:00Z |
+| 51 | **Theertha Prasadam** | `u56JtEKRlI0Kvl0ckgeL` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-18T01:00:00Z |
+| 52 | **Punyahavachanam** | `vnnfBVVeJZ50I6TiNGS5` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-14T22:30:00Z |
+| 53 | **Durga, Saraswati, Gayatri, Lakshmi Homam** | `w0cmCTedIAClXvPWmItg` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-18T22:30:00Z |
+| 54 | **Aruna Homam** | `wa92MJ7WO0Af7kGTI6n4` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-16T15:30:00Z |
+| 55 | **Sudarshana Homam** | `xOXkpy81tCnGZowywuTr` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-17T16:30:00Z |
+| 56 | **Theertha Prasadam** | `xgNKQ6c4vwGNS8IUkbER` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-19T01:00:00Z |
+| 57 | **Dasha Sahasra Modaka Homam** | `xhZJOrssS5OifbA2ODse` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-15T16:30:00Z |
+| 58 | **Theertha Prasadam** | `y3EqehlRp9x2MpxWo3Xq` | ACTIVE | Hindu Temple of St. Louis - Community Center (CEC) | 2026-07-15T01:30:00Z |
+| 59 | **Ankurarpana (seed sowing ritual)** | `y3bNRUAd2lwcWjcOPI57` | ACTIVE | Hindu Temple of St. Louis - Yagashala | 2026-07-14T23:45:00Z |

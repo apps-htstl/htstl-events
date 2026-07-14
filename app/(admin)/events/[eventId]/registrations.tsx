@@ -25,8 +25,9 @@ import {
   addRegistration,
   checkInAttendee,
   getEvent,
+  subscribeOrgUsers,
 } from '@/lib/firestore';
-import { HTSLEvent, Registration } from '@/lib/types';
+import { HTSLEvent, Registration, AppUser } from '@/lib/types';
 
 export default function RegistrationsScreen() {
   const { appUser } = useAuth();
@@ -39,6 +40,7 @@ export default function RegistrationsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<AppUser[]>([]);
 
   // Modals state
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -84,8 +86,22 @@ export default function RegistrationsScreen() {
       });
     });
 
-    return () => unsubscribe();
+    // Subscribe to Org Users to resolve checkin IDs
+    const unsubUsers = subscribeOrgUsers(appUser.orgId, (fetchedUsers) => {
+      setUsers(fetchedUsers);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubUsers();
+    };
   }, [appUser?.orgId, eventId]);
+
+  const getUserName = (uid: string) => {
+    const user = users.find((u) => u.uid === uid);
+    if (!user) return `UID: ${uid}`;
+    return user.displayName || user.email;
+  };
 
   const handleAddRegistration = async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -445,7 +461,7 @@ export default function RegistrationsScreen() {
                           {log.checkedInAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                       </View>
-                      <Text style={styles.logBy}>Checked in by UID: {log.checkedInBy}</Text>
+                      <Text style={styles.logBy}>Checked in by: {getUserName(log.checkedInBy)}</Text>
                     </View>
                   ))
                 )}

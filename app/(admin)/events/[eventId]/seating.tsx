@@ -31,11 +31,18 @@ export default function SeatingScreen() {
 
   // Editable lists
   const [sections, setSections] = useState<Section[]>([]);
+  const [tiers, setTiers] = useState<Tier[]>([]);
   
   // Custom section fields
   const [newSecName, setNewSecName] = useState('');
   const [newSecCap, setNewSecCap] = useState('100');
   const [showAddForm, setShowAddForm] = useState(false);
+
+  // Custom tier fields
+  const [newTierName, setNewTierName] = useState('');
+  const [showAddTierForm, setShowAddTierForm] = useState(false);
+
+  const TIER_COLORS = ['#A855F7', '#6366F1', '#EC4899', '#3B82F6', '#F59E0B', '#EF4444', '#10B981'];
 
   useEffect(() => {
     if (!appUser?.orgId || !eventId) return;
@@ -45,6 +52,7 @@ export default function SeatingScreen() {
       if (fetchedEvent) {
         setEvent(fetchedEvent);
         setSections(fetchedEvent.sections);
+        setTiers(fetchedEvent.tiers);
       }
       setIsLoading(false);
     });
@@ -57,6 +65,91 @@ export default function SeatingScreen() {
     setSections((current) =>
       current.map((sec) => (sec.id === id ? { ...sec, capacity: numericCap } : sec))
     );
+  };
+
+  const handleUpdateName = (id: string, val: string) => {
+    setSections((current) =>
+      current.map((sec) => (sec.id === id ? { ...sec, name: val } : sec))
+    );
+  };
+
+  const handleUpdateTierName = (id: string, val: string) => {
+    setTiers((current) =>
+      current.map((t) => (t.id === id ? { ...t, name: val } : t))
+    );
+  };
+
+  const handleToggleSectionAssignment = (tierId: string, sectionId: string) => {
+    setTiers((current) =>
+      current.map((t) => {
+        if (t.id !== tierId) return t;
+        const exists = t.sectionIds.includes(sectionId);
+        const newSectionIds = exists
+          ? t.sectionIds.filter((id) => id !== sectionId)
+          : [...t.sectionIds, sectionId];
+        return { ...t, sectionIds: newSectionIds };
+      })
+    );
+  };
+
+  const handleAddTier = () => {
+    if (!newTierName.trim()) {
+      Alert.alert('Validation Error', 'Tier Name is required');
+      return;
+    }
+
+    const newId = newTierName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    if (tiers.some((t) => t.id === newId)) {
+      Alert.alert('Duplicate', 'A tier with this name already exists.');
+      return;
+    }
+
+    const existingColors = tiers.map(t => t.color.toUpperCase());
+    const availableColor = TIER_COLORS.find(c => !existingColors.includes(c.toUpperCase())) || TIER_COLORS[Math.floor(Math.random() * TIER_COLORS.length)];
+
+    const newTier: Tier = {
+      id: newId,
+      name: newTierName.trim(),
+      color: availableColor,
+      sectionIds: [],
+    };
+
+    setTiers([...tiers, newTier]);
+    setNewTierName('');
+    setShowAddTierForm(false);
+  };
+
+  const handleDeleteTier = (id: string) => {
+    if (id === 'general') {
+      Alert.alert('Error', 'The General tier is required and cannot be deleted.');
+      return;
+    }
+
+    const performDelete = () => {
+      setTiers(tiers.filter((t) => t.id !== id));
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        'Remove Tier: Are you sure you want to remove this tier? Make sure no active registrations rely on it.'
+      );
+      if (confirmed) {
+        performDelete();
+      }
+    } else {
+      Alert.alert(
+        'Remove Tier',
+        'Are you sure you want to remove this tier? Make sure no active registrations rely on it.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: performDelete,
+          },
+        ]
+      );
+    }
   };
 
   const handleAddSection = () => {
@@ -120,7 +213,7 @@ export default function SeatingScreen() {
 
       // Verify and update corresponding Tiers if sections were deleted
       // For any deleted section, we remove it from Tier sectionIds
-      const updatedTiers = event.tiers.map((tier) => {
+      const updatedTiers = tiers.map((tier) => {
         const filteredSectionIds = tier.sectionIds.filter((secId) =>
           sections.some((s) => s.id === secId)
         );
@@ -176,11 +269,7 @@ export default function SeatingScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => {
-            if (router.canGoBack()) {
-              router.back();
-            } else {
-              router.replace(`/(admin)/events/${eventId}`);
-            }
+            router.replace(`/(admin)/events/${eventId}` as any);
           }}
           style={styles.backBtn}
         >
@@ -206,8 +295,13 @@ export default function SeatingScreen() {
             <View key={sec.id} style={styles.sectionRow}>
               <View style={styles.sectionLeft}>
                 <View style={[styles.colorIndicator, { backgroundColor: sec.color || '#D97706' }]} />
-                <View>
-                  <Text style={styles.sectionName}>{sec.name}</Text>
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    style={styles.sectionNameInput}
+                    value={sec.name}
+                    onChangeText={(val) => handleUpdateName(sec.id, val)}
+                    placeholder="Section Name"
+                  />
                   <Text style={styles.sectionId}>ID: {sec.id}</Text>
                 </View>
               </View>
@@ -280,20 +374,92 @@ export default function SeatingScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Tiers & Section Assignments</Text>
             <Text style={styles.cardDescription}>
-              Tiers are linked to sections to route attendees to their correct seating zone during check-in.
+              Edit the names of your tiers (e.g. general, priority) and toggle which seating sections map to them below.
             </Text>
 
-            {event.tiers.map((tier) => (
+            {tiers.map((tier) => (
               <View key={tier.id} style={styles.tierItem}>
                 <View style={styles.tierHeader}>
                   <View style={[styles.colorIndicator, { backgroundColor: tier.color }]} />
-                  <Text style={styles.tierName}>{tier.name} Tier</Text>
+                  <View style={{ flex: 1 }}>
+                    <TextInput
+                      style={styles.tierNameInput}
+                      value={tier.name}
+                      onChangeText={(val) => handleUpdateTierName(tier.id, val)}
+                      placeholder="Tier Name"
+                    />
+                  </View>
+                  {tier.id !== 'general' && (
+                    <TouchableOpacity
+                      style={styles.deleteTierBtn}
+                      onPress={() => handleDeleteTier(tier.id)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
                 </View>
-                <Text style={styles.tierSections}>
-                  Maps to: {tier.sectionIds.join(', ') || '(No sections assigned)'}
-                </Text>
+                
+                <View style={styles.sectionAssignmentRow}>
+                  <Text style={styles.sectionAssignmentLabel}>Maps to Seating Sections:</Text>
+                  <View style={styles.tagsContainer}>
+                    {sections.map((sec) => {
+                      const isAssigned = tier.sectionIds.includes(sec.id);
+                      return (
+                        <TouchableOpacity
+                          key={sec.id}
+                          style={[
+                            styles.sectionTag,
+                            isAssigned && { backgroundColor: tier.color, borderColor: tier.color }
+                          ]}
+                          onPress={() => handleToggleSectionAssignment(tier.id, sec.id)}
+                        >
+                          <Text style={[styles.sectionTagText, isAssigned && styles.sectionTagTextActive]}>
+                            {sec.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                    {sections.length === 0 && (
+                      <Text style={styles.noSectionsText}>No seating sections created yet.</Text>
+                    )}
+                  </View>
+                </View>
               </View>
             ))}
+
+            {/* Add Tier toggle button */}
+            {!showAddTierForm && (
+              <TouchableOpacity style={styles.addSectionToggle} onPress={() => setShowAddTierForm(true)}>
+                <Ionicons name="add" size={18} color="#6D28D9" />
+                <Text style={styles.addSectionToggleText}>Add Custom Tier</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Add Tier Form */}
+            {showAddTierForm && (
+              <View style={styles.addSectionForm}>
+                <Text style={styles.addSectionTitle}>New Custom Tier</Text>
+                
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Tier Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. VVIP"
+                    value={newTierName}
+                    onChangeText={setNewTierName}
+                  />
+                </View>
+
+                <View style={styles.formActions}>
+                  <TouchableOpacity style={styles.cancelFormBtn} onPress={() => setShowAddTierForm(false)}>
+                    <Text style={styles.cancelFormText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.submitFormBtn} onPress={handleAddTier}>
+                    <Text style={styles.submitFormText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -405,6 +571,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
   },
+  sectionNameInput: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    minWidth: 120,
+    outlineStyle: 'none',
+  } as any,
   sectionId: {
     fontSize: 11,
     color: '#9CA3AF',
@@ -512,16 +690,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  tierName: {
+  tierNameInput: {
     fontSize: 14,
     fontWeight: '700',
     color: '#374151',
-  },
-  tierSections: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: 'transparent',
+    minWidth: 120,
+    outlineStyle: 'none',
+  } as any,
+  sectionAssignmentRow: {
+    marginTop: 8,
     marginLeft: 20,
+    gap: 6,
+  },
+  sectionAssignmentLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  sectionTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  sectionTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  sectionTagTextActive: {
+    color: '#FFF',
+  },
+  noSectionsText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#9CA3AF',
+  },
+  deleteTierBtn: {
+    padding: 4,
   },
   saveBtn: {
     flexDirection: 'row',
