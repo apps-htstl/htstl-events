@@ -461,18 +461,82 @@ export default function SheetAttendeesScreen() {
                 ) : null}
 
                 <View style={styles.detailList}>
-                  {selectedRow.attendee.gotram ? (
-                    <DetailRow icon="leaf-outline" label="Gotram" value={selectedRow.attendee.gotram} />
-                  ) : null}
-                  {selectedRow.attendee.eventName ? (
-                    <DetailRow icon="calendar-outline" label="Event" value={`${selectedRow.attendee.eventName}  ${selectedRow.attendee.eventDate}  ${selectedRow.attendee.eventTime}`} />
-                  ) : null}
-                  {selectedRow.attendee.phone ? (
-                    <DetailRow icon="call-outline" label="Phone" value={selectedRow.attendee.phone} />
-                  ) : null}
-                  {selectedRow.attendee.email ? (
-                    <DetailRow icon="mail-outline" label="Email" value={selectedRow.attendee.email} />
-                  ) : null}
+
+                  {/* ── Identity ───────────────────────────── */}
+                  <View style={styles.detailSectionHeader}>
+                    <Text style={styles.detailSectionTitle}>Identity</Text>
+                  </View>
+
+                  <DetailRow
+                    icon="person-outline"
+                    label="Customer Name"
+                    value={selectedRow.attendee.customerName || '—'}
+                  />
+                  <DetailRow
+                    icon="people-outline"
+                    label="Spouse Name"
+                    value={selectedRow.attendee.spouseName || '—'}
+                  />
+                  <DetailRow
+                    icon="leaf-outline"
+                    label="Gotram"
+                    value={selectedRow.attendee.gotram || '—'}
+                    highlight={!selectedRow.attendee.gotram}
+                  />
+
+                  {/* ── Event ─────────────────────────────── */}
+                  <View style={styles.detailSectionHeader}>
+                    <Text style={styles.detailSectionTitle}>Event</Text>
+                  </View>
+
+                  <DetailRow
+                    icon="calendar-outline"
+                    label="Event Name"
+                    value={selectedRow.attendee.eventName || '—'}
+                  />
+                  <DetailRow
+                    icon="today-outline"
+                    label="Event Date"
+                    value={selectedRow.attendee.eventDate || '—'}
+                  />
+                  <DetailRow
+                    icon="time-outline"
+                    label="Event Time"
+                    value={selectedRow.attendee.eventTime || '—'}
+                  />
+
+                  {/* ── Contact ───────────────────────────── */}
+                  <View style={styles.detailSectionHeader}>
+                    <Text style={styles.detailSectionTitle}>Contact</Text>
+                  </View>
+
+                  <DetailRow
+                    icon="call-outline"
+                    label="Phone"
+                    value={selectedRow.attendee.phone || '—'}
+                    highlight={!selectedRow.attendee.phone}
+                  />
+                  <DetailRow
+                    icon="mail-outline"
+                    label="Email"
+                    value={selectedRow.attendee.email || '—'}
+                    highlight={!selectedRow.attendee.email}
+                  />
+
+                  {/* ── Row Key (diagnostic) ──────────────── */}
+                  <View style={styles.detailSectionHeader}>
+                    <Text style={styles.detailSectionTitle}>Tracking</Text>
+                  </View>
+                  <DetailRow
+                    icon="key-outline"
+                    label="ID Method"
+                    value={
+                      selectedRow.attendee.rowKey.startsWith('phone:') ? 'Phone (stable ✓)' :
+                      selectedRow.attendee.rowKey.startsWith('email:') ? 'Email (stable ✓)' :
+                      'Name + Gotram (add phone/email to stabilise)'
+                    }
+                    highlight={isNameBasedKey(selectedRow.attendee.rowKey)}
+                  />
                 </View>
 
                 {/* Name-based key warning */}
@@ -480,7 +544,7 @@ export default function SheetAttendeesScreen() {
                   <View style={styles.warningBox}>
                     <Ionicons name="warning-outline" size={15} color="#B45309" />
                     <Text style={styles.warningText}>
-                      No phone or email on file — identity is tracked by name. Adding phone/email to the sheet will make check-in tracking more reliable.
+                      No phone or email on file — identity is tracked by name + gotram. Adding a phone number to the sheet will make check-in tracking more reliable.
                     </Text>
                   </View>
                 )}
@@ -621,13 +685,22 @@ export default function SheetAttendeesScreen() {
 }
 
 // ─── Helper component ────────────────────────────────────────────────────────
-function DetailRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+function DetailRow({
+  icon, label, value, highlight = false,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  highlight?: boolean;   // true = value is missing/needs attention → amber text
+}) {
   return (
     <View style={styles.detailRow}>
-      <Ionicons name={icon} size={16} color="#6B7280" />
+      <Ionicons name={icon} size={16} color={highlight ? '#B45309' : '#6B7280'} />
       <View style={{ flex: 1 }}>
         <Text style={styles.detailLabel}>{label}</Text>
-        <Text style={styles.detailValue}>{value}</Text>
+        <Text style={[styles.detailValue, highlight && styles.detailValueMissing]}>
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -735,10 +808,25 @@ const styles = StyleSheet.create({
   modalCardTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
 
   // Detail rows inside modal
-  detailList: { gap: 10, marginTop: 4 },
-  detailRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  detailList: { gap: 2, marginTop: 4 },
+  detailSectionHeader: {
+    marginTop: 14,
+    marginBottom: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  detailSectionTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  detailRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', paddingVertical: 6 },
   detailLabel: { fontSize: 11, color: '#9CA3AF', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   detailValue: { fontSize: 14, color: '#111827', fontWeight: '500', marginTop: 1 },
+  detailValueMissing: { color: '#B45309', fontStyle: 'italic' },
 
   // Warning box
   warningBox: {
