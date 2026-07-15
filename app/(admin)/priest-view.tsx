@@ -172,7 +172,7 @@ function Dropdown({
         <View style={gsDark.menu}>
           <ScrollView
             style={[
-              { maxHeight: 340 },
+              { maxHeight: 340, backgroundColor: colors.dark.surface },
               Platform.OS === "web" &&
               ({
                 overflowY: "scroll",

@@ -439,6 +439,12 @@ export const gsDark = StyleSheet.create({
     borderColor: colors.gold,
     backgroundColor: colors.dark.surface,
     overflow: "hidden",
+    zIndex: 1000,
+    elevation: 10,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
     ...(Platform.OS === "web"
       ? { boxShadow: `0 8px 24px ${alpha(colors.black, 0.5)}` }
       : {}),
@@ -625,6 +631,8 @@ export const gsDark = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     gap: spacing.md,
+    zIndex: 50,
+    backgroundColor: colors.dark.bg,
   },
   dropdownFull: { minWidth: "100%" },
   btnFull: { width: "100%" },
