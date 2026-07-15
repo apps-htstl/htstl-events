@@ -106,6 +106,46 @@ const normalizeEventName = (value: string) =>
 const eventNamesMatch = (left: string, right: string) =>
   normalizeEventName(left) === normalizeEventName(right);
 
+// Seva approval mapper: set to `false` to hide a seva from the priest view dropdown
+const APPROVED_SEVAS: Record<string, boolean> = {
+  "mahanyasam": true,
+  "upahomams & poornahuti (final offering)": true,
+  "rudhra homam": true,
+  "ganapati puja": true,
+  "theertha prasadam": true,
+  "samuhika rudrabhishekam": true,
+  "gomatha puja": true,
+  "vigneshwara puja": true,
+  "varaahi homam": true,
+  "chandi homam": true,
+  "mahanyasa parayanam": true,
+  "deeksha dharana": true,
+  "agni mathanam (sacred fire generation)": true,
+  "kalasha udvasana & abhishekam to lord shiva": true,
+  "dwaja arohanam & shodasha stambha puja": true,
+  "nakshatra, navagraha & mrityunjaya homam": true,
+  "gomatha & mahanyasam parayanam": true,
+  "gopuja followed by panchakshari 108 times": true,
+  "kalyana mahotsavam": true,
+  "rajashyamala homam": true,
+  "samuhika kumkum archana": true,
+  "punyahavachanam & parishad prayaschitta": true,
+  "mantrapushpam followed by prasadam": true,
+  "procession of puja materials and deities into yagashala": true,
+  "prathyangira homam": true,
+  "panjagavya prashanam": true,
+  "rudra homam": true,
+  "panditha sathkaram": true,
+  "avabhruta snanam for deeksha holder & theertha prasadam": true,
+  "akhanda deepa aradhana": true,
+  "vastu ganapati homam": true,
+  "durga, saraswati, gayatri, lakshmi homam": true,
+  "aruna homam": true,
+  "sudarshana homam": true,
+  "dasha sahasra modaka homam": true,
+  "ankurarpana (seed sowing ritual)": true,
+};
+
 // Apps Script's `clean` helper collapses whitespace before completion keys are
 // returned. Build UI keys the same way so non-breaking or repeated spaces in a
 // Firestore event name cannot make an already-completed sponsor appear again.
@@ -402,7 +442,12 @@ export default function PriestViewScreen() {
       ...new Set(
         eventsForSelectedDate.map((event) => event.name).filter(Boolean),
       ),
-    ].sort();
+    ]
+      .filter((name) => {
+        const key = normalizeEventName(name);
+        return APPROVED_SEVAS[key] !== false;
+      })
+      .sort();
 
     return [
       { value: ALL, label: "All Sevas" },
