@@ -171,10 +171,17 @@ export default function SheetAttendeesScreen() {
         if (filterMode === 'not-checked-in') return checkin === null || !!checkin.checkedOutAt;
         return true;
       })
-      // Always sort A–Z by customer name safely
+      // Sort: by search relevance score descending first (if searching),
+      // then alphabetically. Empty names are sorted to the bottom.
       .sort((a, b) => {
-        const nameA = a.attendee.customerName || '';
-        const nameB = b.attendee.customerName || '';
+        if (searchQuery && Math.abs(b.score - a.score) > 0.001) {
+          return b.score - a.score;
+        }
+        const nameA = (a.attendee.customerName || '').trim();
+        const nameB = (b.attendee.customerName || '').trim();
+        if (!nameA && nameB) return 1;
+        if (nameA && !nameB) return -1;
+        if (!nameA && !nameB) return 0;
         return nameA.localeCompare(nameB);
       });
   }, [attendees, checkinMap, searchQuery, filterMode, letterFilter]);
