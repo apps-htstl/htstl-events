@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Platform,
   Pressable,
@@ -259,9 +260,26 @@ function Dropdown({
 // ─── Screen ──────────────────────────────────────────────────────────────────
 export default function PriestViewScreen() {
   const router = useRouter();
-  const { appUser } = useAuth();
+  const { appUser, logout } = useAuth();
   const { width } = useWindowDimensions();
   const narrow = width < NARROW_BREAKPOINT;
+
+  const handleLogout = () => {
+    if (Platform.OS === "web") {
+      if (window.confirm("Are you sure you want to sign out?")) {
+        logout();
+      }
+    } else {
+      Alert.alert(
+        "Sign Out",
+        "Are you sure you want to sign out?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Sign Out", style: "destructive", onPress: () => logout() },
+        ]
+      );
+    }
+  };
   const [events, setEvents] = useState<HTSLEvent[]>([]);
   const [records, setRecords] = useState<SankalpamRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -533,6 +551,9 @@ export default function PriestViewScreen() {
             <Text style={gsDark.liveText}>{shownCount} in view</Text>
             <TouchableOpacity onPress={() => router.replace("/home" as any)}>
               <Text style={gsDark.link}>← Back</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleLogout}>
+              <Text style={gsDark.link}>Logout</Text>
             </TouchableOpacity>
           </>
         }
