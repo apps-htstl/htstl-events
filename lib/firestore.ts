@@ -17,6 +17,7 @@ import {
   Timestamp,
   arrayUnion,
   runTransaction,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { HTSLEvent, Registration, AppUser, CheckInEntry, SevaList, SevaProgress, SheetCheckin } from './types';
@@ -407,6 +408,20 @@ export async function updateEventSheet(
 ): Promise<void> {
   const eventRef = doc(db, 'orgs', orgId, 'events', eventId);
   await updateDoc(eventRef, { sheetUrl, sheetId, sheetEventFilter, sheetEventColumn });
+}
+
+/** Remove the Google Sheet link from an event, clearing all sheet-related fields. */
+export async function delinkEventSheet(
+  orgId: string,
+  eventId: string,
+): Promise<void> {
+  const eventRef = doc(db, 'orgs', orgId, 'events', eventId);
+  await updateDoc(eventRef, {
+    sheetUrl: deleteField(),
+    sheetId: deleteField(),
+    sheetEventFilter: deleteField(),
+    sheetEventColumn: deleteField(),
+  });
 }
 
 /** Map a Firestore sheetCheckin doc to a SheetCheckin object. */

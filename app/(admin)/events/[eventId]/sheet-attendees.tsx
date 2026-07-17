@@ -23,7 +23,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { subscribeEvent, subscribeSheetCheckins, writeSheetCheckin, writeSheetCheckout, undoSheetCheckin, updateEventSheet, subscribeOrgUsers } from '@/lib/firestore';
+import { subscribeEvent, subscribeSheetCheckins, writeSheetCheckin, writeSheetCheckout, undoSheetCheckin, updateEventSheet, delinkEventSheet, subscribeOrgUsers } from '@/lib/firestore';
 import { fetchSheetAttendees, searchAttendees, isNameBasedKey, extractSheetId } from '@/lib/sheetAttendees';
 import { HTSLEvent, SheetAttendee, SheetCheckin, AppUser } from '@/lib/types';
 
@@ -278,6 +278,34 @@ export default function SheetAttendeesScreen() {
     }
   };
 
+  // ── Delink sheet ────────────────────────────────────────────────────────────
+  const handleDelink = () => {
+    if (!appUser?.orgId || !eventId) return;
+    const doDelink = async () => {
+      setConfigSaving(true);
+      try {
+        await delinkEventSheet(appUser.orgId!, eventId);
+        setAttendees([]);
+        setSheetError(null);
+        setConfigVisible(false);
+      } catch (err: any) {
+        Alert.alert('Failed', err?.message || 'Could not remove sheet link.');
+      } finally {
+        setConfigSaving(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Remove the sheet link from this event? Attendee list will be cleared. Check-in records are preserved.')) doDelink();
+    } else {
+      Alert.alert(
+        'Remove Sheet Link',
+        'This will unlink the Google Sheet from this event. The attendee list will be cleared. Check-in records are preserved.',
+        [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: doDelink }],
+      );
+    }
+  };
+
   // ─── Render row ─────────────────────────────────────────────────────────────
   const renderRow = ({ item }: { item: AttendeeRow }) => {
     const { attendee, checkin } = item;
@@ -353,7 +381,7 @@ export default function SheetAttendeesScreen() {
     <SafeAreaView style={styles.container}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace(`/(admin)/events/${eventId}` as any)} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace(`/(admin)/events/${eventId}` as any)} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#374151" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
@@ -772,6 +800,18 @@ export default function SheetAttendeesScreen() {
                   <Text style={styles.saveConfigBtnText}>Save &amp; Reload Attendees</Text>
                 )}
               </TouchableOpacity>
+
+              {/* Delink button — only shown when a sheet is already linked */}
+              {!!event?.sheetId && (
+                <TouchableOpacity
+                  style={styles.delinkBtn}
+                  onPress={handleDelink}
+                  disabled={configSaving}
+                >
+                  <Ionicons name="unlink-outline" size={16} color="#DC2626" />
+                  <Text style={styles.delinkBtnText}>Remove Sheet Link</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </KeyboardAvoidingView>
         </View>
@@ -985,4 +1025,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginTop: 4,
   },
   saveConfigBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  delinkBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: '#DC2626', borderRadius: 12, padding: 14, marginTop: 8,
+    backgroundColor: '#FEF2F2',
+  },
+  delinkBtnText: { color: '#DC2626', fontWeight: '700', fontSize: 14 },
 });
