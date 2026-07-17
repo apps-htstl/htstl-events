@@ -1,5 +1,5 @@
 // app/(volunteer)/_layout.tsx
-// Volunteer tab navigator — Scan, Dashboard, Lookup tabs.
+// Volunteer tab navigator — Lookup, Attendance, Scan tabs.
 
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
@@ -26,11 +26,11 @@ export default function VolunteerLayout() {
       }}
     >
       <Tabs.Screen
-        name="scan"
+        name="lookup"
         options={{
-          title: 'Scan',
+          title: 'Lookup',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="qr-code-outline" size={size} color={color} />
+            <Ionicons name="search-outline" size={size} color={color} />
           ),
         }}
       />
@@ -44,11 +44,11 @@ export default function VolunteerLayout() {
         }}
       />
       <Tabs.Screen
-        name="lookup"
+        name="scan"
         options={{
-          title: 'Lookup',
+          title: 'Scan',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={color} />
+            <Ionicons name="qr-code-outline" size={size} color={color} />
           ),
         }}
       />

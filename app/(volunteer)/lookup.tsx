@@ -86,6 +86,13 @@ export default function LookupScreen() {
         } as HTSLEvent;
       });
 
+      // Sort by event date descending (most recent first)
+      activeEvents.sort((a, b) => {
+        const aTime = a.date ? a.date.getTime() : 0;
+        const bTime = b.date ? b.date.getTime() : 0;
+        return bTime - aTime;
+      });
+
       setEvents(activeEvents);
       if (activeEvents.length > 0 && !selectedEvent) {
         setSelectedEvent(activeEvents[0]);
