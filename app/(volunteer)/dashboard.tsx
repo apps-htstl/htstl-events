@@ -11,7 +11,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
-  } from 'react-native';
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeEvent, subscribeRegistrations } from '@/lib/firestore';
@@ -26,6 +27,7 @@ export default function VolunteerDashboard() {
   const [selectedEvent, setSelectedEvent] = useState<HTSLEvent | null>(null);
   const [showEventPicker, setShowEventPicker] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventSearch, setEventSearch] = useState('');
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -246,13 +248,30 @@ export default function VolunteerDashboard() {
               </TouchableOpacity>
             </View>
 
+            {/* Search box inside picker */}
+            <View style={styles.pickerSearchBox}>
+              <Ionicons name="search-outline" size={16} color="#9CA3AF" />
+              <TextInput
+                style={styles.pickerSearchInput}
+                placeholder="Search events..."
+                placeholderTextColor="#9CA3AF"
+                value={eventSearch}
+                onChangeText={setEventSearch}
+              />
+            </View>
+
             {eventsLoading ? (
               <ActivityIndicator style={{ margin: 24 }} color="#059669" />
             ) : events.length === 0 ? (
               <Text style={styles.noEventsPicker}>No active events available.</Text>
             ) : (
               <ScrollView showsVerticalScrollIndicator={true}>
-                {events.map((evt) => (
+                {events
+                  .filter((e) =>
+                    !eventSearch.trim() ||
+                    e.name.toLowerCase().includes(eventSearch.trim().toLowerCase())
+                  )
+                  .map((evt) => (
                   <TouchableOpacity
                     key={evt.id}
                     style={[
@@ -262,6 +281,7 @@ export default function VolunteerDashboard() {
                     onPress={() => {
                       setSelectedEvent(evt);
                       setShowEventPicker(false);
+                      setEventSearch('');
                     }}
                   >
                     <Text style={styles.pickerItemText}>{evt.name}</Text>
@@ -483,5 +503,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 2,
+  },
+  pickerSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    marginBottom: 4,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 0,
   },
 });

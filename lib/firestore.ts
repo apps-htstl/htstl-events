@@ -195,12 +195,35 @@ export function subscribeRegistrations(
   callback: (registrations: Registration[]) => void
 ) {
   const regsRef = collection(db, 'orgs', orgId, 'events', eventId, 'registrations');
-  const q = query(regsRef, orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => {
-    const regs = snapshot.docs.map(mapRegistrationDoc);
-    callback(regs);
-  });
+
+  // Try ordered query first; fall back to unordered if index is missing
+  const orderedQuery = query(regsRef, orderBy('createdAt', 'desc'));
+  let unsubscribe = onSnapshot(
+    orderedQuery,
+    (snapshot) => {
+      const regs = snapshot.docs.map(mapRegistrationDoc);
+      callback(regs);
+    },
+    (error) => {
+      // Index missing or permission error — fall back to unordered query, sort client-side
+      console.warn('[subscribeRegistrations] orderBy failed, falling back to unordered:', error.message);
+      unsubscribe(); // stop the broken listener
+      unsubscribe = onSnapshot(query(regsRef), (snapshot) => {
+        const regs = snapshot.docs
+          .map(mapRegistrationDoc)
+          .sort((a, b) => {
+            const aTime = a.createdAt ? a.createdAt.getTime() : 0;
+            const bTime = b.createdAt ? b.createdAt.getTime() : 0;
+            return bTime - aTime;
+          });
+        callback(regs);
+      });
+    }
+  );
+
+  return () => unsubscribe();
 }
+
 
 // Subscribe to single registration
 export function subscribeRegistration(

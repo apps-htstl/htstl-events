@@ -30,6 +30,7 @@ export default function LookupScreen() {
   const [selectedEvent, setSelectedEvent] = useState<HTSLEvent | null>(null);
   const [showEventPicker, setShowEventPicker] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventSearch, setEventSearch] = useState('');
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,8 +126,23 @@ export default function LookupScreen() {
 
   // Filter registrations by search query
   const filteredRegs = registrations.filter((reg) => {
-    const searchStr = `${reg.firstName} ${reg.lastName} ${reg.email} ${reg.phone}`.toLowerCase();
-    return searchStr.includes(searchQuery.toLowerCase());
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    // Search across all relevant fields including CSV-imported extras
+    const searchStr = [
+      reg.firstName,
+      reg.lastName,
+      reg.email,
+      reg.phone,
+      reg.notes,
+      (reg as any).spouseName,
+      (reg as any).gotram,
+      (reg as any).gotham,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return searchStr.includes(q);
   });
 
   const handleManualCheckIn = async () => {
@@ -391,13 +407,30 @@ export default function LookupScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Search box inside event picker */}
+            <View style={styles.pickerSearchBox}>
+              <Ionicons name="search-outline" size={16} color="#9CA3AF" />
+              <TextInput
+                style={styles.pickerSearchInput}
+                placeholder="Search events..."
+                placeholderTextColor="#9CA3AF"
+                value={eventSearch}
+                onChangeText={setEventSearch}
+              />
+            </View>
+
             {eventsLoading ? (
               <ActivityIndicator style={{ margin: 24 }} color="#059669" />
             ) : events.length === 0 ? (
               <Text style={styles.noEventsPicker}>No active events available.</Text>
 ) : (
               <ScrollView showsVerticalScrollIndicator={true}>
-                {events.map((evt) => (
+                {events
+                  .filter((e) =>
+                    !eventSearch.trim() ||
+                    e.name.toLowerCase().includes(eventSearch.trim().toLowerCase())
+                  )
+                  .map((evt) => (
                   <TouchableOpacity
                     key={evt.id}
                     style={[
@@ -407,6 +440,7 @@ export default function LookupScreen() {
                     onPress={() => {
                       setSelectedEvent(evt);
                       setShowEventPicker(false);
+                      setEventSearch('');
                     }}
                   >
                     <Text style={styles.pickerItemText}>{evt.name}</Text>
@@ -934,6 +968,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 2,
+  },
+  pickerSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    marginBottom: 4,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 0,
   },
   confirmContainer: {
     backgroundColor: '#FFF',
