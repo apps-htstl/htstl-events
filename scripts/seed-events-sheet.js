@@ -8,7 +8,7 @@ const { getAuth, signInWithEmailAndPassword } = require('firebase/auth');
 const { getFirestore, collection, addDoc, Timestamp } = require('firebase/firestore');
 
 const DEFAULT_EMAIL = 'testadmin@htsl.events';
-const DEFAULT_PASSWORD = 'htstleventsadmin0714';
+const DEFAULT_PASSWORD = 'htstleventsadmin';
 
 function loadEnv() {
   const envPath = path.join(__dirname, '..', '.env.local');

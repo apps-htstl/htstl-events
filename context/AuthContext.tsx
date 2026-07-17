@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // If password is one of the default passwords and the sign-in failed,
         // attempt to initialize/reset the password using Cloud Function.
         const defaultPasswords = [
-          'htstleventsadmin0714',
+          'htstleventsadmin',
           'poojari1234',
           'volunteer1234',
           process.env.EXPO_PUBLIC_DEFAULT_USER_PASSWORD

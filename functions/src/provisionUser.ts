@@ -49,7 +49,7 @@ export const provisionUser = onCall(async (request) => {
     // Determine expected password for this role
     let roleDefaultPassword = 'volunteer1234'; // fallback
     if (role === 'superadmin' || role === 'eventadmin') {
-      roleDefaultPassword = 'htstleventsadmin0714';
+      roleDefaultPassword = 'htstleventsadmin';
     } else if (role === 'poojari') {
       roleDefaultPassword = 'poojari1234';
     } else if (role === 'volunteer') {
@@ -103,7 +103,7 @@ export const provisionUser = onCall(async (request) => {
     // Determine expected password for this role
     let roleDefaultPassword = 'volunteer1234'; // fallback
     if (role === 'superadmin' || role === 'eventadmin') {
-      roleDefaultPassword = 'htstleventsadmin0714';
+      roleDefaultPassword = 'htstleventsadmin';
     } else if (role === 'poojari') {
       roleDefaultPassword = 'poojari1234';
     } else if (role === 'volunteer') {
