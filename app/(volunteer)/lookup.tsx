@@ -97,7 +97,7 @@ export default function LookupScreen() {
       if (activeEvents.length > 0 && !selectedEvent) {
         // Prefer Samuhika Kumkum Archana as default; fall back to first event
         const preferred = activeEvents.find((e) =>
-          e.name.toLowerCase().includes('samuhika')
+          e.name.toLowerCase().includes('kumkum')
         );
         setSelectedEvent(preferred ?? activeEvents[0]);
       }
