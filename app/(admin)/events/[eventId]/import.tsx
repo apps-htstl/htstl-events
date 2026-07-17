@@ -73,6 +73,10 @@ interface FieldMapping {
   tier: string;
   partySize: string;
   notes: string;
+  spouseName: string;
+  gotram: string;
+  amount: string;
+  serviceDate: string;
 }
 
 export default function CSVImportScreen() {
@@ -94,6 +98,10 @@ export default function CSVImportScreen() {
     tier: '',
     partySize: '',
     notes: '',
+    spouseName: '',
+    gotram: '',
+    amount: '',
+    serviceDate: '',
   });
 
   const [importProgress, setImportProgress] = useState(0);
@@ -135,17 +143,25 @@ export default function CSVImportScreen() {
         const text = header.toLowerCase().replace(/[\s_-]/g, '');
         const indexStr = index.toString();
 
-        if (text.includes('first') || text === 'name' || text === 'fname') {
+        if (text.includes('devotee') || text === 'name' || text === 'first' || text === 'fname') {
           newMappings.firstName = indexStr;
         } else if (text.includes('last') || text === 'lname' || text === 'surname') {
           newMappings.lastName = indexStr;
+        } else if (text.includes('spouse') || text === 'wife' || text === 'husband') {
+          newMappings.spouseName = indexStr;
+        } else if (text.includes('gotra') || text.includes('gothra')) {
+          newMappings.gotram = indexStr;
+        } else if (text.includes('amount') || text === 'price' || text === 'cost') {
+          newMappings.amount = indexStr;
+        } else if (text.includes('date') || text.includes('time')) {
+          newMappings.serviceDate = indexStr;
         } else if (text.includes('email') || text === 'mail') {
           newMappings.email = indexStr;
         } else if (text.includes('phone') || text.includes('mobile') || text === 'tel') {
           newMappings.phone = indexStr;
-        } else if (text.includes('tier') || text.includes('sponsor') || text === 'level') {
+        } else if (text.includes('tier') || text.includes('sponsor') || text === 'level' || text.includes('product') || text.includes('service')) {
           newMappings.tier = indexStr;
-        } else if (text.includes('party') || text.includes('guests') || text.includes('size') || text.includes('count')) {
+        } else if (text.includes('qty') || text.includes('quantity') || text.includes('party') || text.includes('guests') || text.includes('size') || text.includes('count')) {
           newMappings.partySize = indexStr;
         } else if (text.includes('note') || text.includes('comment') || text.includes('diet')) {
           newMappings.notes = indexStr;
@@ -161,12 +177,8 @@ export default function CSVImportScreen() {
   };
 
   const validateMappings = () => {
-    if (mappings.firstName === '' || mappings.lastName === '') {
-      Alert.alert('Mapping Error', 'First Name and Last Name columns must be mapped.');
-      return false;
-    }
-    if (mappings.email === '' && mappings.phone === '') {
-      Alert.alert('Mapping Error', 'You must map either Email or Phone to deliver tickets.');
+    if (mappings.firstName === '') {
+      Alert.alert('Mapping Error', 'First Name / Devotee Name column must be mapped.');
       return false;
     }
     return true;
@@ -178,60 +190,106 @@ export default function CSVImportScreen() {
       return idx !== '' ? row[parseInt(idx)] : '';
     };
 
+    let fName = getValue('firstName').trim();
+    let lName = getValue('lastName').trim();
+
+    // Split Full/Devotee Name if lastName is not mapped/empty
+    if (fName && !lName) {
+      const parts = fName.split(/\s+/);
+      if (parts.length > 1) {
+        fName = parts[0];
+        lName = parts.slice(1).join(' ');
+      }
+    }
+
+    const spouseName = getValue('spouseName').trim();
+    const gotram = getValue('gotram').trim();
+    const amount = getValue('amount').trim();
+    const serviceDate = getValue('serviceDate').trim();
+    const qtyVal = getValue('partySize').trim();
+    const tierVal = getValue('tier').trim();
+    
+    // Notes combine manual notes and service metadata if present
+    const rawNotes = getValue('notes').trim();
+    const extraNotes = [
+      rawNotes,
+      serviceDate ? `Service Date: ${serviceDate}` : '',
+      amount ? `Amount: ${amount}` : ''
+    ].filter(Boolean).join(' | ');
+
     return {
-      firstName: getValue('firstName'),
-      lastName: getValue('lastName'),
-      email: getValue('email'),
-      phone: getValue('phone'),
-      tier: getValue('tier') || 'General',
-      partySize: parseInt(getValue('partySize')) || 1,
-      notes: getValue('notes'),
+      firstName: fName,
+      lastName: lName,
+      email: getValue('email').trim(),
+      phone: getValue('phone').trim(),
+      spouseName: spouseName,
+      gotram: gotram,
+      tier: tierVal || 'General',
+      partySize: parseInt(qtyVal) || 1,
+      notes: extraNotes || '',
     };
   };
 
   const handleStartImport = async () => {
     if (!appUser?.orgId || !eventId) return;
 
-    try {
-      setStep('importing');
-      setTotalToImport(csvData.length);
-      setImportProgress(0);
+    const performImport = async () => {
+      try {
+        setStep('importing');
+        setTotalToImport(csvData.length);
+        setImportProgress(0);
 
-      // Write in batches of 250 (Firestore limit is 500, using 250 for safety)
-      const batchSize = 250;
-      let batch = writeBatch(db);
-      let countInBatch = 0;
+        // Write in batches of 250 (Firestore limit is 500, using 250 for safety)
+        const batchSize = 250;
+        let batch = writeBatch(db);
+        let countInBatch = 0;
 
-      for (let i = 0; i < csvData.length; i++) {
-        const row = csvData[i];
-        const data = getMappedRow(row);
+        for (let i = 0; i < csvData.length; i++) {
+          const row = csvData[i];
+          const data = getMappedRow(row);
 
-        const regRef = doc(collection(db, 'orgs', appUser.orgId, 'events', eventId, 'registrations'));
-        batch.set(regRef, {
-          eventId,
-          orgId: appUser.orgId,
-          ...data,
-          checkedInCount: 0,
-          checkins: [],
-          qrStatus: { generated: false },
-          createdAt: Timestamp.now(),
-        });
+          const regRef = doc(collection(db, 'orgs', appUser.orgId, 'events', eventId, 'registrations'));
+          batch.set(regRef, {
+            eventId,
+            orgId: appUser.orgId,
+            ...data,
+            checkedInCount: 0,
+            checkins: [],
+            qrStatus: { generated: false },
+            createdAt: Timestamp.now(),
+          });
 
-        countInBatch++;
+          countInBatch++;
 
-        if (countInBatch === batchSize || i === csvData.length - 1) {
-          await batch.commit();
-          setImportProgress(i + 1);
-          batch = writeBatch(db);
-          countInBatch = 0;
+          if (countInBatch === batchSize || i === csvData.length - 1) {
+            await batch.commit();
+            setImportProgress(i + 1);
+            batch = writeBatch(db);
+            countInBatch = 0;
+          }
         }
-      }
 
-      setStep('success');
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'An error occurred during import.');
-      setStep('preview');
+        setStep('success');
+      } catch (err) {
+        console.error(err);
+        Alert.alert('Error', 'An error occurred during import.');
+        setStep('preview');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Confirm Import: Are you sure you want to import all ${csvData.length} attendees?`)) {
+        performImport();
+      }
+    } else {
+      Alert.alert(
+        'Confirm Import',
+        `Are you sure you want to import all ${csvData.length} attendees?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Import', style: 'default', onPress: performImport },
+        ]
+      );
     }
   };
 
@@ -325,13 +383,17 @@ export default function CSVImportScreen() {
           </View>
 
           <ScrollView contentContainerStyle={styles.mappingsList}>
-            {renderMappingOption('firstName', 'First Name', true)}
-            {renderMappingOption('lastName', 'Last Name', true)}
-            {renderMappingOption('email', 'Email Address')}
-            {renderMappingOption('phone', 'Phone Number')}
-            {renderMappingOption('tier', 'Seating Tier')}
-            {renderMappingOption('partySize', 'Party Size')}
-            {renderMappingOption('notes', 'Notes / Preferences')}
+            {renderMappingOption('firstName', 'Devotee / First Name', true)}
+            {renderMappingOption('lastName', 'Last Name (Optional)')}
+            {renderMappingOption('spouseName', 'Spouse (Optional)')}
+            {renderMappingOption('gotram', 'Gothram (Optional)')}
+            {renderMappingOption('email', 'Email Address (Optional)')}
+            {renderMappingOption('phone', 'Phone Number (Optional)')}
+            {renderMappingOption('tier', 'Product Service / Tier (Optional)')}
+            {renderMappingOption('partySize', 'QTY / Party Size (Optional)')}
+            {renderMappingOption('notes', 'Notes / Preferences (Optional)')}
+            {renderMappingOption('amount', 'Amount (Optional)')}
+            {renderMappingOption('serviceDate', 'Service Date (Optional)')}
           </ScrollView>
 
           <View style={styles.footer}>
